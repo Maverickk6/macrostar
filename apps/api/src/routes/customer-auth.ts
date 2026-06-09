@@ -5,11 +5,12 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { customers } from '../db/schema.js';
 import { sendRegistrationConfirmationEmail } from '../services/email.service.js';
+import { authRateLimit } from '../middleware/rate-limit.js';
 
 const customerAuth = new Hono();
 
 // POST /api/auth/customer/register
-customerAuth.post('/register', async (c) => {
+customerAuth.post('/register', authRateLimit, async (c) => {
   try {
     const body = await c.req.json();
     const { name, email, password, confirmPassword, phone } = body;
@@ -22,6 +23,15 @@ customerAuth.post('/register', async (c) => {
       );
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return c.json(
+        { success: false, message: 'Invalid email format' },
+        400
+      );
+    }
+
     if (password !== confirmPassword) {
       return c.json(
         { success: false, message: 'Passwords do not match' },
@@ -29,9 +39,9 @@ customerAuth.post('/register', async (c) => {
       );
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       return c.json(
-        { success: false, message: 'Password must be at least 6 characters' },
+        { success: false, message: 'Password must be at least 8 characters' },
         400
       );
     }
@@ -81,8 +91,8 @@ customerAuth.post('/register', async (c) => {
     // Generate JWT
     const token = jwt.sign(
       { id: customer.id, email: customer.email, type: 'customer' },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '7d' }
+      process.env.JWT_SECRET!,
+      { expiresIn: '1h' } // Reduced from 7d to 1h for better security
     );
 
     // Send registration confirmation email (fire and forget)
@@ -115,7 +125,7 @@ customerAuth.post('/register', async (c) => {
 });
 
 // POST /api/auth/customer/login
-customerAuth.post('/login', async (c) => {
+customerAuth.post('/login', authRateLimit, async (c) => {
   try {
     const body = await c.req.json();
     const { email, password } = body;
@@ -168,8 +178,8 @@ customerAuth.post('/login', async (c) => {
     // Generate JWT
     const token = jwt.sign(
       { id: customer.id, email: customer.email, type: 'customer' },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '7d' }
+      process.env.JWT_SECRET!,
+      { expiresIn: '1h' } // Reduced from 7d to 1h for better security
     );
 
     return c.json({
@@ -209,7 +219,7 @@ customerAuth.get('/me', async (c) => {
 
     let decoded: any;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      decoded = jwt.verify(token, process.env.JWT_SECRET!);
     } catch (err) {
       return c.json(
         { success: false, message: 'Invalid token' },
@@ -281,7 +291,7 @@ customerAuth.put('/update-profile', async (c) => {
 
     let decoded: any;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      decoded = jwt.verify(token, process.env.JWT_SECRET!);
     } catch (err) {
       return c.json(
         { success: false, message: 'Invalid token' },

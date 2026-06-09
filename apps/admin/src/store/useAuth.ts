@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 interface User {
   id: number;
@@ -15,27 +16,27 @@ interface AuthState {
   checkAuth: () => boolean;
 }
 
-export const useAuth = create<AuthState>((set, get) => ({
-  token: null,
-  user: null,
-  login: (token, user) => {
-    localStorage.setItem('macrostar-admin-token', token);
-    localStorage.setItem('macrostar-admin-user', JSON.stringify(user));
-    set({ token, user });
-  },
-  logout: () => {
-    localStorage.removeItem('macrostar-admin-token');
-    localStorage.removeItem('macrostar-admin-user');
-    set({ token: null, user: null });
-  },
-  checkAuth: () => {
-    if (get().token) return true;
-    const localToken = localStorage.getItem('macrostar-admin-token');
-    const localUser = localStorage.getItem('macrostar-admin-user');
-    if (localToken && localUser) {
-      set({ token: localToken, user: JSON.parse(localUser) });
-      return true;
+export const useAuth = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      token: null,
+      user: null,
+      login: (token, user) => {
+        set({ token, user });
+      },
+      logout: () => {
+        set({ token: null, user: null });
+      },
+      checkAuth: () => {
+        return get().token !== null && get().user !== null;
+      },
+    }),
+    {
+      name: 'macrostar-admin-auth',
+      partialize: (state) => ({
+        token: state.token,
+        user: state.user,
+      }),
     }
-    return false;
-  },
-}));
+  )
+);

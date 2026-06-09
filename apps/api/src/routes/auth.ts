@@ -5,11 +5,12 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { users } from '../db/schema.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { authRateLimit } from '../middleware/rate-limit.js';
 
 const auth = new Hono();
 
-// POST /api/auth/login
-auth.post('/login', async (c) => {
+// Apply rate limiting to login
+auth.post('/login', authRateLimit, async (c) => {
   const body = await c.req.json();
   const { email, password } = body;
 
@@ -31,7 +32,7 @@ auth.post('/login', async (c) => {
   const token = jwt.sign(
     { id: user.id, email: user.email, role: user.role },
     process.env.JWT_SECRET!,
-    { expiresIn: '7d' }
+    { expiresIn: '1h' } // Reduced from 7d to 1h for better security
   );
 
   return c.json({

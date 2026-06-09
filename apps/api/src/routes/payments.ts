@@ -2,17 +2,34 @@ import { Hono } from 'hono';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { orders } from '../db/schema.js';
+import { strictRateLimit } from '../middleware/rate-limit.js';
 
 const paymentsRouter = new Hono();
 
 const PAYSTACK_BASE = 'https://api.paystack.co';
 
+// Apply rate limiting to all payment endpoints
+paymentsRouter.use('*', strictRateLimit);
+
 // POST /api/payments/initialize — init Paystack transaction
 paymentsRouter.post('/initialize', async (c) => {
   const { email, amount, orderId, callbackUrl, metadata } = await c.req.json();
 
+  // Input validation
   if (!email || !amount) {
     return c.json({ success: false, message: 'Email and amount are required' }, 400);
+  }
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return c.json({ success: false, message: 'Invalid email format' }, 400);
+  }
+
+  // Validate amount
+  const numAmount = parseFloat(amount);
+  if (isNaN(numAmount) || numAmount <= 0 || numAmount > 10000000) {
+    return c.json({ success: false, message: 'Invalid amount' }, 400);
   }
 
   const response = await fetch(`${PAYSTACK_BASE}/transaction/initialize`, {
@@ -23,7 +40,7 @@ paymentsRouter.post('/initialize', async (c) => {
     },
     body: JSON.stringify({
       email,
-      amount: Math.round(amount * 100), // Paystack uses kobo
+      amount: Math.round(numAmount * 100), // Paystack uses kobo
       currency: 'NGN',
       callback_url: callbackUrl,
       metadata: { orderId, ...metadata },
@@ -54,6 +71,11 @@ paymentsRouter.post('/verify', async (c) => {
     return c.json({ success: false, message: 'Payment reference is required' }, 400);
   }
 
+  // Validate reference format (Paystack references are alphanumeric)
+  if (!/^[a-zA-Z0-9_-]+$/.test(reference)) {
+    return c.json({ success: false, message: 'Invalid reference format' }, 400);
+  }
+
   const response = await fetch(`${PAYSTACK_BASE}/transaction/verify/${reference}`, {
     headers: {
       Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
@@ -68,6 +90,11 @@ paymentsRouter.post('/verify', async (c) => {
 
   // Update order payment status
   if (orderId) {
+    const orderIdNum = parseInt(orderId);
+    if (isNaN(orderIdNum)) {
+      return c.json({ success: false, message: 'Invalid order ID' }, 400);
+    }
+
     await db.update(orders)
       .set({
         paymentStatus: 'paid',
@@ -75,7 +102,7 @@ paymentsRouter.post('/verify', async (c) => {
         status: 'confirmed',
         updatedAt: new Date(),
       })
-      .where(eq(orders.id, parseInt(orderId)));
+      .where(eq(orders.id, orderIdNum));
   }
 
   return c.json({
@@ -95,6 +122,10 @@ paymentsRouter.post('/webhook', async (c) => {
   const signature = c.req.header('x-paystack-signature');
   const body = await c.req.text();
 
+  if (!signature) {
+    return c.json({ success: false, message: 'Signature required' }, 400);
+  }
+
   // Verify webhook signature
   const crypto = await import('crypto');
   const hash = crypto
@@ -106,21 +137,30 @@ paymentsRouter.post('/webhook', async (c) => {
     return c.json({ success: false, message: 'Invalid signature' }, 400);
   }
 
-  const event = JSON.parse(body);
+  let event;
+  try {
+    event = JSON.parse(body);
+  } catch {
+    return c.json({ success: false, message: 'Invalid JSON' }, 400);
+  }
 
+  // Only process charge.success events
   if (event.event === 'charge.success') {
     const { reference, metadata } = event.data;
     const orderId = metadata?.orderId;
 
     if (orderId) {
-      await db.update(orders)
-        .set({
-          paymentStatus: 'paid',
-          paymentRef: reference,
-          status: 'confirmed',
-          updatedAt: new Date(),
-        })
-        .where(eq(orders.id, parseInt(orderId)));
+      const orderIdNum = parseInt(orderId);
+      if (!isNaN(orderIdNum)) {
+        await db.update(orders)
+          .set({
+            paymentStatus: 'paid',
+            paymentRef: reference,
+            status: 'confirmed',
+            updatedAt: new Date(),
+          })
+          .where(eq(orders.id, orderIdNum));
+      }
     }
   }
 

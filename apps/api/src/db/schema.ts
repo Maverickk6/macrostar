@@ -116,6 +116,13 @@ export const orders = pgTable('orders', {
     country: string;
     zip?: string;
   }>(),
+  billingAddress: jsonb('billing_address').$type<{
+    street: string;
+    city: string;
+    state: string;
+    country: string;
+    zip?: string;
+  }>(),
   notes: text('notes'),
   trackingNumber: varchar('tracking_number', { length: 100 }),
   estimatedDelivery: timestamp('estimated_delivery'),

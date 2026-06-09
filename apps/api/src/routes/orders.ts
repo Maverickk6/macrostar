@@ -3,6 +3,7 @@ import { eq, desc, and, ilike, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { orders, orderItems, products } from '../db/schema.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { strictRateLimit } from '../middleware/rate-limit.js';
 
 const ordersRouter = new Hono();
 
@@ -13,13 +14,24 @@ function generateOrderNumber(): string {
   return `${prefix}-${timestamp}-${random}`;
 }
 
-// POST /api/orders — create order (public, from checkout)
-ordersRouter.post('/', async (c) => {
+// Apply rate limiting to order creation
+ordersRouter.post('/', strictRateLimit, async (c) => {
   const body = await c.req.json();
   const { customer, items, shippingAddress, notes } = body;
 
   if (!items || items.length === 0) {
     return c.json({ success: false, message: 'Order must have at least one item' }, 400);
+  }
+
+  // Validate customer info
+  if (!customer?.email || !customer?.name) {
+    return c.json({ success: false, message: 'Customer name and email are required' }, 400);
+  }
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(customer.email)) {
+    return c.json({ success: false, message: 'Invalid email format' }, 400);
   }
 
   // Validate products and calculate totals
@@ -131,7 +143,7 @@ ordersRouter.get('/:id', async (c) => {
 
 // PUT /api/orders/:id/status — admin update order/delivery status
 ordersRouter.put('/:id/status', authMiddleware, async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseInt(c.req.param('id') || '0');
   const { status, paymentStatus, trackingNumber, notes } = await c.req.json();
 
   const [existing] = await db.select().from(orders).where(eq(orders.id, id));

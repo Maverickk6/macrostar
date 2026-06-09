@@ -200,7 +200,8 @@ export default function AdminOrdersPage() {
             </div>
           ) : (
             <div className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-sm">
-              <div className="overflow-x-auto text-sm">
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto text-sm">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-muted/30 text-xs font-bold text-muted-foreground uppercase border-b border-border/50">
@@ -242,6 +243,38 @@ export default function AdminOrdersPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-3">
+                {filteredOrders.map((ord) => (
+                  <div key={ord.id} className="p-4 border-b border-border/40 last:border-b-0">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex-1">
+                        <p className="font-mono font-bold text-foreground text-sm">{ord.orderNumber}</p>
+                        <p className="font-semibold text-foreground text-sm">{ord.guestName}</p>
+                        <p className="text-[10px] text-muted-foreground">{ord.guestEmail}</p>
+                      </div>
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold capitalize shrink-0 ${
+                        ord.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-400' :
+                        ord.status === 'shipped' ? 'bg-blue-500/10 text-blue-400' :
+                        ord.status === 'processing' ? 'bg-amber-500/10 text-amber-400' :
+                        'bg-neutral-500/10 text-neutral-400'
+                      }`}>
+                        {ord.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-foreground">{formatNaira(ord.total)}</span>
+                      <button
+                        onClick={() => handleSelectOrder(ord)}
+                        className="p-2 bg-muted hover:bg-primary hover:text-primary-foreground rounded-lg transition-colors border border-border"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}

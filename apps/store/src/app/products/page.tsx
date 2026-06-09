@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Search, SlidersHorizontal, ChevronDown, RefreshCw, X, Monitor, Laptop, Keyboard, Cpu, HardDrive } from 'lucide-react';
 import ProductCard, { Product } from '@/components/ProductCard';
 import { formatNaira } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -17,6 +18,7 @@ function ProductsContent() {
   const [categoriesList, setCategoriesList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -142,14 +144,26 @@ function ProductsContent() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-extrabold tracking-tight">MacroStar Tech Catalog</h1>
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">MacroStar Tech Catalog</h1>
+          <button
+            onClick={() => setFilterOpen(!filterOpen)}
+            className="lg:hidden flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm"
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            <span>Filters</span>
+          </button>
+        </div>
         <p className="text-sm text-muted-foreground">Find genuine computers, laptop parts, gaming gear, repairs and software installs in Edo State.</p>
       </div>
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Left Side: Filters Sidebar */}
-        <aside className="lg:col-span-1 space-y-6 bg-card border border-border/60 p-6 rounded-2xl h-fit">
+        <aside className={cn(
+          'lg:col-span-1 space-y-6 bg-card border border-border/60 p-6 rounded-2xl h-fit',
+          filterOpen ? 'block' : 'hidden lg:block'
+        )}>
           <div className="flex items-center justify-between">
             <span className="font-bold text-sm tracking-wide uppercase flex items-center gap-1.5">
               <SlidersHorizontal className="h-4.5 w-4.5 text-primary" />

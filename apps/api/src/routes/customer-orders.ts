@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
-import { eq } from 'drizzle-orm';
-import db from '../db/index.js';
+import { eq, desc } from 'drizzle-orm';
+import { db } from '../db/index.js';
 import { orders, customers } from '../db/schema.js';
 
 const customerOrderRouter = new Hono();
@@ -43,16 +43,20 @@ customerOrderRouter.get('/my-orders', async (c) => {
         orderNumber: orders.orderNumber,
         customerId: orders.customerId,
         status: orders.status,
+        paymentStatus: orders.paymentStatus,
         total: orders.total,
-        currency: orders.currency,
+        subtotal: orders.subtotal,
+        shippingFee: orders.shippingFee,
         createdAt: orders.createdAt,
         updatedAt: orders.updatedAt,
-        items: orders.items,
         shippingAddress: orders.shippingAddress,
+        billingAddress: orders.billingAddress,
+        trackingNumber: orders.trackingNumber,
+        estimatedDelivery: orders.estimatedDelivery,
       })
       .from(orders)
       .where(eq(orders.customerId, parseInt(customerId)))
-      .orderBy(orders.createdAt);
+      .orderBy(desc(orders.createdAt));
 
     return c.json(customerOrders);
   } catch (error: any) {
@@ -83,15 +87,18 @@ customerOrderRouter.get('/:id', async (c) => {
         orderNumber: orders.orderNumber,
         customerId: orders.customerId,
         status: orders.status,
+        paymentStatus: orders.paymentStatus,
         total: orders.total,
-        currency: orders.currency,
+        subtotal: orders.subtotal,
+        shippingFee: orders.shippingFee,
         createdAt: orders.createdAt,
         updatedAt: orders.updatedAt,
-        items: orders.items,
         shippingAddress: orders.shippingAddress,
         billingAddress: orders.billingAddress,
         paymentMethod: orders.paymentMethod,
         trackingNumber: orders.trackingNumber,
+        estimatedDelivery: orders.estimatedDelivery,
+        deliveredAt: orders.deliveredAt,
       })
       .from(orders)
       .where(eq(orders.id, parseInt(orderId)))

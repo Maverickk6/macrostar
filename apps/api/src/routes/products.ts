@@ -29,7 +29,7 @@ productsRouter.get('/', async (c) => {
 
   const conditions = [];
 
-  if (status) conditions.push(eq(products.status, status as any));
+  if (status && status !== 'all') conditions.push(eq(products.status, status as any));
   if (featured === 'true') conditions.push(eq(products.featured, true));
   if (brand) conditions.push(ilike(products.brand, `%${brand}%`));
   if (inStock === 'true') conditions.push(gte(products.stock, 1));

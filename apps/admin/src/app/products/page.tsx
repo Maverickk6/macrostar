@@ -47,6 +47,8 @@ export default function AdminProductsPage() {
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [images, setImages] = useState<string[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   const fetchProducts = async () => {
     try {
@@ -99,6 +101,7 @@ export default function AdminProductsPage() {
     setSku(prod.sku || '');
     setDescription('');
     setCategoryId('');
+    setImages(prod.images || []);
     setShowAddForm(true);
 
     try {
@@ -134,7 +137,7 @@ export default function AdminProductsPage() {
       description: description || null,
       categoryId: categoryId ? parseInt(categoryId) : null,
       status: 'active',
-      images: [],
+      images: images,
     };
 
     try {
@@ -209,6 +212,43 @@ export default function AdminProductsPage() {
     }
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingImages(true);
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach((file) => {
+        formData.append('files', file);
+      });
+      formData.append('folder', 'macrostar/products');
+
+      const res = await fetch(`${API_URL}/api/upload/multiple`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error('Upload failed');
+
+      const json = await res.json();
+      setImages([...images, ...json.urls]);
+      toast.success('Images uploaded successfully!');
+    } catch (err) {
+      console.error('Upload error:', err);
+      toast.error('Failed to upload images');
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index));
+  };
+
   const resetForm = () => {
     setEditingProduct(null);
     setName('');
@@ -219,6 +259,7 @@ export default function AdminProductsPage() {
     setSku('');
     setDescription('');
     setCategoryId('');
+    setImages([]);
   };
 
   const filteredProducts = products.filter((p) => {
@@ -345,6 +386,47 @@ export default function AdminProductsPage() {
                 className="w-full bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-4 py-2 resize-none"
                 rows={3}
               />
+            </div>
+            <div className="space-y-1 sm:col-span-3">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">Product Images</label>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    disabled={uploadingImages}
+                    className="flex-1 text-xs bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-4 py-2"
+                  />
+                  {uploadingImages && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      <span>Uploading...</span>
+                    </div>
+                  )}
+                </div>
+                {images.length > 0 && (
+                  <div className="grid grid-cols-4 gap-3">
+                    {images.map((url, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={url}
+                          alt={`Product image ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg border border-border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <button

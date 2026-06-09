@@ -16,6 +16,8 @@ import {
   Settings,
   ShieldCheck,
   RefreshCw,
+  Menu,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -28,6 +30,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const { checkAuth, logout, user, token } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const isAuthed = checkAuth();
@@ -62,25 +65,46 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   return (
     <div className="min-h-screen flex bg-background text-foreground">
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 border-r border-border/60 bg-card/50 flex flex-col shrink-0">
+      <aside
+        className={cn(
+          'fixed lg:static inset-y-0 left-0 z-50 w-64 border-r border-border/60 bg-card/50 flex flex-col shrink-0 transition-transform duration-300 lg:translate-x-0',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        )}
+      >
         {/* Brand Logo */}
-        <div className="h-16 flex items-center gap-2 px-6 border-b border-border/50">
-          <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
-            <Monitor className="h-5 w-5" />
+        <div className="h-16 flex items-center justify-between gap-2 px-6 border-b border-border/50">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
+              <Monitor className="h-5 w-5" />
+            </div>
+            <div>
+              <span className="font-extrabold text-sm tracking-tight text-foreground block">
+                MacroStar Admin
+              </span>
+              <span className="text-[9px] block text-muted-foreground font-bold tracking-wider uppercase -mt-0.5">
+                Control Panel
+              </span>
+            </div>
           </div>
-          <div>
-            <span className="font-extrabold text-sm tracking-tight text-foreground block">
-              MacroStar Admin
-            </span>
-            <span className="text-[9px] block text-muted-foreground font-bold tracking-wider uppercase -mt-0.5">
-              Control Panel
-            </span>
-          </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-2 hover:bg-muted rounded-lg transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-4 py-6 space-y-1">
+        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
@@ -88,6 +112,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setSidebarOpen(false)}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150',
                   isActive
@@ -124,10 +149,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* Main Container */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header */}
-        <header className="h-16 border-b border-border/50 bg-card/25 flex items-center justify-between px-8">
-          <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
-            <ShieldCheck className="h-4.5 w-4.5 text-primary" />
-            <span>MacroStar Technologies Ltd — Edo State</span>
+        <header className="h-16 border-b border-border/50 bg-card/25 flex items-center justify-between px-4 sm:px-8">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="lg:hidden p-2 hover:bg-muted rounded-lg transition-colors"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
+              <ShieldCheck className="h-4.5 w-4.5 text-primary" />
+              <span className="hidden sm:inline">MacroStar Technologies Ltd — Edo State</span>
+              <span className="sm:hidden">MacroStar Ltd</span>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs font-semibold px-2.5 py-1 bg-primary/10 text-primary rounded-full">
@@ -137,7 +171,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </header>
 
         {/* Workspace */}
-        <main className="flex-grow p-8 overflow-y-auto">
+        <main className="flex-grow p-4 sm:p-8 overflow-y-auto">
           {children}
         </main>
       </div>

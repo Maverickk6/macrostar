@@ -100,10 +100,20 @@ export default async function HomePage() {
   return (
     <div className="space-y-16 pb-16">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-radial from-primary/20 via-background to-background py-20 lg:py-28 border-b border-border/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <section className="relative overflow-hidden py-20 lg:py-28 border-b border-border/50">
+        {/* Background Image with Overlay */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src="https://images.unsplash.com/photo-1591488320449-011701bb6704?q=80&w=2071&auto=format&fit=crop"
+            alt="Gaming PC with colorful components"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/95 to-background/70" />
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-6 text-center lg:text-left">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs font-bold text-primary tracking-wide">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs font-bold text-primary tracking-wide backdrop-blur-sm">
               <Landmark className="h-3.5 w-3.5" />
               <span>Ekpoma's Premier Computer Hub</span>
             </div>
@@ -126,7 +136,7 @@ export default async function HomePage() {
               </Link>
               <Link
                 href="/contact"
-                className="inline-flex items-center justify-center px-6 py-3.5 border border-border bg-card hover:bg-muted font-bold rounded-xl transition-all duration-300"
+                className="inline-flex items-center justify-center px-6 py-3.5 border border-border bg-card/80 backdrop-blur-sm hover:bg-muted font-bold rounded-xl transition-all duration-300"
               >
                 <span>Book a Service</span>
               </Link>
@@ -135,7 +145,7 @@ export default async function HomePage() {
 
           <div className="relative flex justify-center items-center">
             <div className="absolute h-72 w-72 bg-primary/20 rounded-full blur-3xl -z-10" />
-            <div className="glass rounded-3xl p-8 max-w-md w-full border border-border shadow-2xl relative">
+            <div className="glass rounded-3xl p-8 max-w-md w-full border border-border shadow-2xl relative backdrop-blur-md bg-card/80">
               <span className="absolute -top-3 -right-3 bg-primary text-primary-foreground font-black text-xs px-3.5 py-1.5 rounded-full shadow-lg">
                 ₦ Naira Store
               </span>
