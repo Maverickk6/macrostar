@@ -1,10 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ShoppingCart, Eye, Heart, Star } from 'lucide-react';
 import { formatNaira } from '@/lib/utils';
 import { useCart } from '@/store/useCart';
+import { useWishlist } from '@/store/useWishlist';
 import { toast } from 'sonner';
 
 export interface Product {
@@ -27,6 +29,11 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const addItem = useCart((state) => state.addItem);
+  const toggleItem = useWishlist((state) => state.toggleItem);
+  const items = useWishlist((state) => state.items);
+
+  const isInWishlist = items.some((item) => item.id === product.id);
+  const [imageError, setImageError] = useState(false);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -47,6 +54,23 @@ export default function ProductCard({ product }: ProductCardProps) {
     });
   };
 
+  const handleToggleWishlist = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    toggleItem({
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      price: product.price,
+      image: product.images?.[0] || null,
+      sku: null,
+      stock: product.stock,
+    });
+
+    toast.success(isInWishlist ? 'Removed from wishlist' : 'Added to wishlist');
+  };
+
   const hasDiscount = product.comparePrice && parseFloat(product.comparePrice) > parseFloat(product.price);
   const discountPercent = hasDiscount
     ? Math.round(
@@ -56,11 +80,13 @@ export default function ProductCard({ product }: ProductCardProps) {
       )
     : 0;
 
-  const placeholderImage = 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?q=80&w=600&auto=format&fit=crop';
   const apiURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-  const imageUrl = product.images?.[0]?.startsWith('/uploads')
-    ? `${apiURL}${product.images[0]}`
-    : product.images?.[0] || placeholderImage;
+  const firstImage = product.images?.[0];
+  const imageUrl = firstImage && firstImage.trim()
+    ? firstImage.startsWith('/uploads')
+      ? `${apiURL}${firstImage}`
+      : firstImage
+    : `https://via.placeholder.com/600x600/334155/e2e8f0?text=${encodeURIComponent(product.name.substring(0, 20))}`;
 
   return (
     <div className="group relative rounded-2xl border border-border/60 bg-card overflow-hidden hover:shadow-xl hover:shadow-primary/5 hover:border-primary/40 transition-all duration-300 flex flex-col h-full">
@@ -85,21 +111,38 @@ export default function ProductCard({ product }: ProductCardProps) {
         ) : null}
 
         {/* Image */}
-        <img
-          src={imageUrl}
-          alt={product.name}
-          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-          loading="lazy"
-        />
+        {imageError ? (
+          <img
+            src={imageUrl}
+            alt={product.name}
+            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
+          />
+        ) : (
+          <Image
+            src={imageUrl}
+            alt={product.name}
+            width={600}
+            height={600}
+            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
+            onError={() => setImageError(true)}
+          />
+        )}
 
         {/* Overlay hover options */}
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
-          <Link
-            href={`/products/${product.slug}`}
-            className="p-3 bg-background hover:bg-primary hover:text-primary-foreground rounded-full text-foreground transition-all duration-200 transform translate-y-4 group-hover:translate-y-0 shadow-lg"
+          <button
+            onClick={handleToggleWishlist}
+            className={`p-3 rounded-full text-foreground transition-all duration-200 transform translate-y-4 group-hover:translate-y-0 shadow-lg ${
+              isInWishlist
+                ? 'bg-red-500 text-white hover:bg-red-600'
+                : 'bg-background hover:bg-red-500 hover:text-white'
+            }`}
+            title={isInWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
           >
-            <Eye className="h-4.5 w-4.5" />
-          </Link>
+            <Heart className={`h-4.5 w-4.5 ${isInWishlist ? 'fill-current' : ''}`} />
+          </button>
           {product.stock > 0 && (
             <button
               onClick={handleAddToCart}

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Heart, Trash2, ShoppingCart, ArrowLeft, Zap } from 'lucide-react';
 import { useWishlist } from '@/store/useWishlist';
 import { useCart } from '@/store/useCart';
@@ -14,6 +15,7 @@ export default function WishlistPage() {
   const [mounted, setMounted] = useState(false);
   const { items, toggleItem } = useWishlist();
   const { addItem } = useCart();
+  const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     setMounted(true);
@@ -44,8 +46,6 @@ export default function WishlistPage() {
     toggleItem(item);
     toast.success('Removed from wishlist');
   };
-
-  const placeholderImage = 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?q=80&w=600&auto=format&fit=crop';
 
   if (items.length === 0) {
     return (
@@ -114,9 +114,12 @@ export default function WishlistPage() {
       {/* Grid Layout */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {items.map((item) => {
-          const imgUrl = item.image?.startsWith('/uploads')
-            ? `${API_URL}${item.image}`
-            : item.image || placeholderImage;
+          const firstImage = item.image;
+          const imgUrl = firstImage && firstImage.trim()
+            ? firstImage.startsWith('/uploads')
+              ? `${API_URL}${firstImage}`
+              : firstImage
+            : `https://via.placeholder.com/600x600/334155/e2e8f0?text=${encodeURIComponent(item.name.substring(0, 20))}`;
 
           const hasDiscount = item.comparePrice && parseFloat(item.comparePrice) > parseFloat(item.price);
           const discountPercent = hasDiscount
@@ -154,12 +157,24 @@ export default function WishlistPage() {
                 ) : null}
 
                 {/* Image */}
-                <img
-                  src={imgUrl}
-                  alt={item.name}
-                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                  loading="lazy"
-                />
+                {imageErrors[item.id] ? (
+                  <img
+                    src={imgUrl}
+                    alt={item.name}
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                  />
+                ) : (
+                  <Image
+                    src={imgUrl}
+                    alt={item.name}
+                    width={600}
+                    height={600}
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                    onError={() => setImageErrors(prev => ({ ...prev, [item.id]: true }))}
+                  />
+                )}
               </Link>
 
               {/* Content */}

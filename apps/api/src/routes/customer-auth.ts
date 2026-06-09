@@ -341,4 +341,83 @@ customerAuth.put('/update-profile', async (c) => {
   }
 });
 
+// PUT /api/auth/customer/change-password
+customerAuth.put('/change-password', async (c) => {
+  try {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader) {
+      return c.json(
+        { success: false, message: 'Unauthorized' },
+        401
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!);
+    } catch (err) {
+      return c.json(
+        { success: false, message: 'Invalid token' },
+        401
+      );
+    }
+
+    const body = await c.req.json();
+    const { currentPassword, newPassword } = body;
+
+    if (!currentPassword || !newPassword) {
+      return c.json(
+        { success: false, message: 'Current and new password are required' },
+        400
+      );
+    }
+
+    if (newPassword.length < 8) {
+      return c.json(
+        { success: false, message: 'New password must be at least 8 characters' },
+        400
+      );
+    }
+
+    const customerResult = await db
+      .select()
+      .from(customers)
+      .where(eq(customers.id, decoded.id))
+      .limit(1);
+
+    if (customerResult.length === 0) {
+      return c.json(
+        { success: false, message: 'Customer not found' },
+        404
+      );
+    }
+
+    const customer = customerResult[0];
+
+    const isValid = await bcrypt.compare(currentPassword, customer.password);
+    if (!isValid) {
+      return c.json(
+        { success: false, message: 'Current password is incorrect' },
+        401
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await db.update(customers)
+      .set({ password: hashedPassword, updatedAt: new Date() })
+      .where(eq(customers.id, decoded.id));
+
+    return c.json({ success: true, message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    return c.json(
+      { success: false, message: 'Failed to change password' },
+      500
+    );
+  }
+});
+
 export default customerAuth;

@@ -1,0 +1,132 @@
+import { Hono } from 'hono';
+import { eq, desc, like, or, inArray } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import { customers } from '../db/schema.js';
+import { authMiddleware } from '../middleware/auth.js';
+
+const customersRouter = new Hono();
+
+// GET /api/customers — admin only: list all customers
+customersRouter.get('/', authMiddleware, async (c) => {
+  const { search, page = '1', limit = '20' } = c.req.query();
+
+  const pageNum = parseInt(page);
+  const limitNum = parseInt(limit);
+  const offset = (pageNum - 1) * limitNum;
+
+  const conditions = [];
+
+  if (search) {
+    conditions.push(or(
+      like(customers.name, `%${search}%`),
+      like(customers.email, `%${search}%`),
+      like(customers.phone, `%${search}%`)
+    ));
+  }
+
+  const [allCustomers, [{ count }]] = await Promise.all([
+    db.select({
+      id: customers.id,
+      name: customers.name,
+      email: customers.email,
+      phone: customers.phone,
+      avatar: customers.avatar,
+      address: customers.address,
+      isActive: customers.isActive,
+      lastLoginAt: customers.lastLoginAt,
+      createdAt: customers.createdAt,
+      updatedAt: customers.updatedAt,
+    })
+      .from(customers)
+      .where(conditions.length > 0 ? or(...conditions) : undefined)
+      .orderBy(desc(customers.createdAt))
+      .limit(limitNum)
+      .offset(offset),
+    db.select({ count: customers.id }).from(customers),
+  ]);
+
+  return c.json({
+    success: true,
+    data: allCustomers,
+    meta: {
+      total: count.length,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(count.length / limitNum),
+    },
+  });
+});
+
+// GET /api/customers/:id — admin only: get single customer
+customersRouter.get('/:id', authMiddleware, async (c) => {
+  const id = parseInt(c.req.param('id'));
+
+  const [customer] = await db
+    .select()
+    .from(customers)
+    .where(eq(customers.id, id))
+    .limit(1);
+
+  if (!customer) return c.json({ success: false, message: 'Customer not found' }, 404);
+
+  return c.json({ success: true, data: customer });
+});
+
+// PUT /api/customers/:id — admin only: update customer
+customersRouter.put('/:id', authMiddleware, async (c) => {
+  const id = parseInt(c.req.param('id'));
+  const body = await c.req.json();
+
+  const [existing] = await db.select().from(customers).where(eq(customers.id, id));
+  if (!existing) return c.json({ success: false, message: 'Customer not found' }, 404);
+
+  const [updated] = await db.update(customers)
+    .set({ ...body, updatedAt: new Date() })
+    .where(eq(customers.id, id))
+    .returning();
+
+  return c.json({ success: true, data: updated });
+});
+
+// DELETE /api/customers/:id — admin only: delete customer
+customersRouter.delete('/:id', authMiddleware, async (c) => {
+  const id = parseInt(c.req.param('id'));
+
+  const [existing] = await db.select().from(customers).where(eq(customers.id, id));
+  if (!existing) return c.json({ success: false, message: 'Customer not found' }, 404);
+
+  await db.delete(customers).where(eq(customers.id, id));
+  return c.json({ success: true, message: 'Customer deleted' });
+});
+
+// POST /api/customers/send-email — admin only: send email to customers
+customersRouter.post('/send-email', authMiddleware, async (c) => {
+  const { customerIds, subject, body } = await c.req.json();
+
+  if (!customerIds || !Array.isArray(customerIds) || customerIds.length === 0) {
+    return c.json({ success: false, message: 'Customer IDs are required' }, 400);
+  }
+
+  if (!subject || !body) {
+    return c.json({ success: false, message: 'Subject and body are required' }, 400);
+  }
+
+  // Get customer emails
+  const selectedCustomers = await db
+    .select({ email: customers.email, name: customers.name })
+    .from(customers)
+    .where(inArray(customers.id, customerIds));
+
+  // For now, just return success (email sending would require nodemailer or similar)
+  // In production, you would use nodemailer or a service like SendGrid
+  return c.json({
+    success: true,
+    message: `Email queued for ${selectedCustomers.length} customer(s)`,
+    data: {
+      recipients: selectedCustomers.map(c => c.email),
+      subject,
+    },
+  });
+});
+
+export default customersRouter;
