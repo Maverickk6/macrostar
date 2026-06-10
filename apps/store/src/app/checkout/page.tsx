@@ -8,6 +8,7 @@ import { CreditCard, Landmark, Truck, ShoppingBag, Landmark as BankIcon } from '
 import { toast } from 'sonner';
 import { CouponInput } from '@/components/coupon-input';
 import { ShippingSelect } from '@/components/shipping-select';
+import { NIGERIA_STATES } from '@/lib/nigeria-states';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -22,8 +23,8 @@ export default function CheckoutPage() {
   const [phone, setPhone] = useState('');
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
   const [street, setStreet] = useState('');
-  const [city, setCity] = useState('Ekpoma');
-  const [state, setState] = useState('Edo');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
   const [notes, setNotes] = useState('');
 
   // Coupon & Shipping State
@@ -201,7 +202,7 @@ export default function CheckoutPage() {
               >
                 <Truck className="h-5 w-5" />
                 <span className="text-sm font-bold">Standard Delivery</span>
-                <span className="text-xs text-muted-foreground">₦2,500 Edo-wide</span>
+                <span className="text-xs text-muted-foreground">Calculated by state</span>
               </button>
 
               <button
@@ -246,14 +247,17 @@ export default function CheckoutPage() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-muted-foreground uppercase">State</label>
-                    <input
-                      type="text"
+                    <select
                       required={deliveryMethod === 'delivery'}
-                      placeholder="Edo"
                       value={state}
                       onChange={(e) => setState(e.target.value)}
-                      className="w-full bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm"
-                    />
+                      className="w-full bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm appearance-none"
+                    >
+                      <option value="">Select a state...</option>
+                      {NIGERIA_STATES.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>

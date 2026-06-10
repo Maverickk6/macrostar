@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import AdminLayout from '../components/AdminLayout';
 import './globals.css';
 import { Toaster } from 'sonner';
+import { ThemeProvider } from '../lib/theme-provider';
 
 export const metadata: Metadata = {
   title: 'MacroStar Technologies | Admin Control Panel',
@@ -15,12 +16,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <body className="bg-background text-foreground antialiased min-h-screen flex flex-col">
-        <AdminLayout>
-          {children}
-        </AdminLayout>
-        <Toaster position="top-right" theme="dark" richColors />
+        <ThemeProvider>
+          <AdminLayout>
+            {children}
+          </AdminLayout>
+          <Toaster position="top-right" richColors />
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/store/useAuth';
+import { useTheme } from '@/lib/theme-provider';
 import {
   Monitor,
   LayoutDashboard,
@@ -18,6 +19,9 @@ import {
   RefreshCw,
   Menu,
   X,
+  Truck,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -29,6 +33,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { checkAuth, logout, user, token } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -60,6 +65,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { label: 'Categories', href: '/categories', icon: ListCollapse },
     { label: 'Orders & Sales', href: '/orders', icon: Compass },
     { label: 'Inventory', href: '/inventory', icon: Boxes },
+    { label: 'Shipping', href: '/shipping', icon: Truck },
     { label: 'Settings', href: '/settings', icon: Settings },
   ];
 
@@ -164,6 +170,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={toggleTheme}
+              className="p-2 hover:bg-muted rounded-lg transition-colors"
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="h-5 w-5" />
+              ) : (
+                <Moon className="h-5 w-5" />
+              )}
+            </button>
             <span className="text-xs font-semibold px-2.5 py-1 bg-primary/10 text-primary rounded-full">
               ₦ Naira Dashboard
             </span>

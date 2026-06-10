@@ -15,9 +15,19 @@ settingsRouter.get('/', async (c) => {
     let allSettings = [];
     try {
       allSettings = await db.select().from(settingsTable);
-    } catch (err) {
-      // Table might not exist yet, use empty array
-      console.log('Settings table might not exist, using defaults');
+    } catch (err: any) {
+      // Only handle "table does not exist" error as non-fatal
+      const errorMessage = err?.message || '';
+      if (errorMessage.includes('does not exist') || errorMessage.includes('relation')) {
+        console.log('Settings table might not exist, using defaults');
+      } else {
+        // Rethrow unexpected DB errors
+        console.error('Error reading settings from database:', err);
+        return c.json(
+          { success: false, message: 'Failed to read settings: ' + (err?.message || 'Database error') },
+          500
+        );
+      }
     }
 
     const settingsMap = {
@@ -50,33 +60,10 @@ settingsRouter.get('/', async (c) => {
     });
   } catch (error: any) {
     console.error('Error fetching settings:', error);
-    // Return default settings on error
-    return c.json({
-      success: true,
-      data: {
-        store: {
-          name: 'MacroStar Technologies',
-          email: 'info@macrostar.ng',
-          phone: '+234 80 0000 0000',
-          address: {
-            street: 'Opposite First Bank PLC',
-            city: 'Ekpoma',
-            state: 'Edo',
-            country: 'Nigeria',
-            zip: '310001',
-          },
-        },
-        payment: {
-          paystackPublicKey: process.env.PAYSTACK_PUBLIC_KEY || '',
-          currency: 'NGN',
-        },
-        tax: {
-          enabled: false,
-          rate: 0,
-          taxId: '',
-        },
-      },
-    });
+    return c.json(
+      { success: false, message: 'Failed to fetch settings: ' + (error?.message || 'Server error') },
+      500
+    );
   }
 });
 
@@ -115,9 +102,19 @@ settingsRouter.put('/', async (c) => {
           updatedAt: new Date(),
         });
       }
-    } catch (err) {
-      // Table might not exist, log warning but return success
-      console.warn('Settings table might not exist, settings not persisted to database');
+    } catch (err: any) {
+      // Only handle "table does not exist" error as non-fatal
+      const errorMessage = err?.message || '';
+      if (errorMessage.includes('does not exist') || errorMessage.includes('relation')) {
+        console.warn('Settings table might not exist, settings not persisted to database');
+      } else {
+        // Rethrow unexpected DB errors
+        console.error('Error updating settings in database:', err);
+        return c.json(
+          { success: false, message: 'Failed to update settings: ' + (err?.message || 'Database error') },
+          500
+        );
+      }
     }
 
     return c.json({

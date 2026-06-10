@@ -25,8 +25,8 @@ export default function CartPage() {
   }
 
   const subtotal = getSubtotal();
-  const shippingFee = subtotal > 0 ? 2500 : 0; // Flat shipping rate
-  const total = subtotal + shippingFee;
+  const shippingFee = 0; // Calculated at checkout based on state selection
+  const total = subtotal; // Final total is calculated at checkout with shipping
 
   const apiURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 

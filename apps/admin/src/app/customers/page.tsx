@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/store/useAuth';
@@ -41,7 +41,13 @@ export default function AdminCustomersPage() {
   const [emailBody, setEmailBody] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
 
-  const fetchCustomers = async () => {
+  const fetchCustomers = useCallback(async () => {
+    if (!token) {
+      setLoading(false);
+      toast.error('Not authenticated');
+      return;
+    }
+
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/api/customers`, {
@@ -60,11 +66,11 @@ export default function AdminCustomersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchCustomers();
-  }, []);
+  }, [fetchCustomers]);
 
   const filteredCustomers = customers.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -87,6 +93,11 @@ export default function AdminCustomersPage() {
   };
 
   const handleSendEmail = async () => {
+    if (!token) {
+      toast.error('Not authenticated');
+      return;
+    }
+
     if (!emailSubject || !emailBody) {
       toast.error('Subject and body are required');
       return;
@@ -128,6 +139,11 @@ export default function AdminCustomersPage() {
   };
 
   const handleToggleStatus = async (id: number, currentStatus: boolean) => {
+    if (!token) {
+      toast.error('Not authenticated');
+      return;
+    }
+
     try {
       const res = await fetch(`${API_URL}/api/customers/${id}`, {
         method: 'PUT',

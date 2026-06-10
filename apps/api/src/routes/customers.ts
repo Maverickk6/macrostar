@@ -80,8 +80,24 @@ customersRouter.put('/:id', authMiddleware, async (c) => {
   const [existing] = await db.select().from(customers).where(eq(customers.id, id));
   if (!existing) return c.json({ success: false, message: 'Customer not found' }, 404);
 
+  // Whitelist of admin-editable fields (exclude protected fields: id, createdAt, password)
+  const allowedFields = {
+    name: body.name,
+    email: body.email,
+    phone: body.phone,
+    avatar: body.avatar,
+    address: body.address,
+    isActive: body.isActive,
+    updatedAt: new Date(),
+  };
+
+  // Remove undefined values
+  const updateData = Object.fromEntries(
+    Object.entries(allowedFields).filter(([_, value]) => value !== undefined)
+  );
+
   const [updated] = await db.update(customers)
-    .set({ ...body, updatedAt: new Date() })
+    .set(updateData)
     .where(eq(customers.id, id))
     .returning();
 
@@ -117,16 +133,15 @@ customersRouter.post('/send-email', authMiddleware, async (c) => {
     .from(customers)
     .where(inArray(customers.id, customerIds));
 
-  // For now, just return success (email sending would require nodemailer or similar)
-  // In production, you would use nodemailer or a service like SendGrid
+  // Email functionality not yet configured - return 501 Not Implemented
   return c.json({
-    success: true,
-    message: `Email queued for ${selectedCustomers.length} customer(s)`,
+    success: false,
+    message: 'Email functionality is not yet configured. Please configure a mailer service (nodemailer, SendGrid, etc.) to enable bulk email sending.',
     data: {
       recipients: selectedCustomers.map(c => c.email),
       subject,
     },
-  });
+  }, 501);
 });
 
 export default customersRouter;

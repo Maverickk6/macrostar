@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { User, Mail, Phone, MapPin, Camera, Save, Lock, LogOut } from 'lucide-react';
@@ -40,11 +40,7 @@ export default function ProfilePage() {
   const [country, setCountry] = useState('');
   const [zip, setZip] = useState('');
 
-  useEffect(() => {
-    fetchCustomer();
-  }, []);
-
-  const fetchCustomer = async () => {
+  const fetchCustomer = useCallback(async () => {
     const token = localStorage.getItem('customer_token');
     if (!token) {
       router.push('/login');
@@ -77,7 +73,11 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    fetchCustomer();
+  }, [fetchCustomer]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
