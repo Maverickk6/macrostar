@@ -14,6 +14,7 @@ interface AuthState {
   login: (token: string, user: User) => void;
   logout: () => void;
   checkAuth: () => boolean;
+  validateToken: () => boolean;
 }
 
 export const useAuth = create<AuthState>()(
@@ -29,6 +30,28 @@ export const useAuth = create<AuthState>()(
       },
       checkAuth: () => {
         return get().token !== null && get().user !== null;
+      },
+      validateToken: () => {
+        const token = get().token;
+        if (!token) return false;
+
+        try {
+          // Decode JWT to check expiration
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          const now = Date.now() / 1000;
+          
+          // Check if token is expired
+          if (payload.exp && payload.exp < now) {
+            get().logout();
+            return false;
+          }
+          
+          return true;
+        } catch (err) {
+          // If token is invalid, logout
+          get().logout();
+          return false;
+        }
       },
     }),
     {

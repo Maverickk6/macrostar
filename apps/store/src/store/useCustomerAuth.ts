@@ -23,7 +23,7 @@ interface AuthState {
   error: string | null;
 
   // Actions
-  register: (name: string, email: string, password: string, phone?: string) => Promise<void>;
+  register: (name: string, email: string, password: string, phone?: string, address?: any) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   clearError: () => void;
@@ -40,7 +40,7 @@ export const useAuth = create<AuthState>()(
       isLoading: false,
       error: null,
 
-      register: async (name, email, password, phone) => {
+      register: async (name, email, password, phone, address) => {
         set({ isLoading: true, error: null });
         try {
           const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
@@ -53,6 +53,7 @@ export const useAuth = create<AuthState>()(
               password,
               confirmPassword: password,
               phone: phone || null,
+              address: address || null,
             }),
           });
 

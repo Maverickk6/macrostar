@@ -32,7 +32,7 @@ auth.post('/login', authRateLimit, async (c) => {
   const token = jwt.sign(
     { id: user.id, email: user.email, role: user.role },
     process.env.JWT_SECRET!,
-    { expiresIn: '1h' } // Reduced from 7d to 1h for better security
+    { expiresIn: '7d' } // 7 days for better user experience
   );
 
   return c.json({

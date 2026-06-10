@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/store/useCustomerAuth';
 import { toast } from 'sonner';
-import { Mail, Lock, User, Phone, Loader, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { Mail, Lock, User, Phone, Loader, Eye, EyeOff, CheckCircle, MapPin } from 'lucide-react';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -17,6 +17,13 @@ export default function RegisterPage() {
     phone: '',
     password: '',
     confirmPassword: '',
+    address: {
+      street: '',
+      city: '',
+      state: '',
+      country: '',
+      zip: '',
+    },
   });
   
   const [showPassword, setShowPassword] = useState(false);
@@ -26,6 +33,13 @@ export default function RegisterPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddressChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      address: { ...prev.address, [field]: value }
+    }));
   };
 
   const validateForm = () => {
@@ -67,7 +81,8 @@ export default function RegisterPage() {
         formData.name,
         formData.email,
         formData.password,
-        formData.phone || undefined
+        formData.phone || undefined,
+        Object.values(formData.address).some(v => v.trim()) ? formData.address : undefined
       );
       toast.success('Account created successfully!');
       router.push('/');
@@ -155,6 +170,63 @@ export default function RegisterPage() {
                 className="w-full pl-10 pr-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50 bg-background"
                 placeholder="+234 80 0000 0000"
               />
+            </div>
+          </div>
+
+          {/* Address (Optional) */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground">
+              Address <span className="text-muted-foreground">(optional)</span>
+            </label>
+            <div className="space-y-2">
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  name="street"
+                  type="text"
+                  value={formData.address.street}
+                  onChange={(e) => handleAddressChange('street', e.target.value)}
+                  disabled={isLoading}
+                  className="w-full pl-10 pr-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50 bg-background"
+                  placeholder="Street Address"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  value={formData.address.city}
+                  onChange={(e) => handleAddressChange('city', e.target.value)}
+                  disabled={isLoading}
+                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50 bg-background"
+                  placeholder="City"
+                />
+                <input
+                  type="text"
+                  value={formData.address.state}
+                  onChange={(e) => handleAddressChange('state', e.target.value)}
+                  disabled={isLoading}
+                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50 bg-background"
+                  placeholder="State"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  value={formData.address.country}
+                  onChange={(e) => handleAddressChange('country', e.target.value)}
+                  disabled={isLoading}
+                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50 bg-background"
+                  placeholder="Country"
+                />
+                <input
+                  type="text"
+                  value={formData.address.zip}
+                  onChange={(e) => handleAddressChange('zip', e.target.value)}
+                  disabled={isLoading}
+                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50 bg-background"
+                  placeholder="ZIP Code"
+                />
+              </div>
             </div>
           </div>
 

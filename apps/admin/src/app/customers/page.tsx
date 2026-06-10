@@ -138,6 +138,11 @@ export default function AdminCustomersPage() {
     }
   };
 
+  const handleSendSingleEmail = (customerId: number) => {
+    setSelectedCustomers([customerId]);
+    setShowEmailModal(true);
+  };
+
   const handleToggleStatus = async (id: number, currentStatus: boolean) => {
     if (!token) {
       toast.error('Not authenticated');
@@ -302,12 +307,21 @@ export default function AdminCustomersPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => router.push(`/customers/${customer.id}`)}
-                        className="text-sm text-primary hover:underline"
-                      >
-                        View Details
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleSendSingleEmail(customer.id)}
+                          className="p-1.5 bg-muted hover:bg-primary hover:text-primary-foreground rounded-lg border border-border transition-colors"
+                          title="Send email"
+                        >
+                          <Mail className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => router.push(`/customers/${customer.id}`)}
+                          className="text-sm text-primary hover:underline"
+                        >
+                          View Details
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

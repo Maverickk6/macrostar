@@ -14,6 +14,7 @@ import {
   Compass,
   LogOut,
   User,
+  Users,
   Settings,
   ShieldCheck,
   RefreshCw,
@@ -32,7 +33,7 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { checkAuth, logout, user, token } = useAuth();
+  const { checkAuth, logout, user, token, validateToken } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -41,10 +42,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     const isAuthed = checkAuth();
     if (!isAuthed && pathname !== '/login') {
       router.push('/login');
+    } else if (isAuthed) {
+      // Validate token and auto-logout if expired
+      const isValid = validateToken();
+      if (!isValid && pathname !== '/login') {
+        router.push('/login');
+      } else {
+        setLoading(false);
+      }
     } else {
       setLoading(false);
     }
-  }, [pathname, router, checkAuth]);
+  }, [pathname, router, checkAuth, validateToken]);
 
   if (loading && pathname !== '/login') {
     return (
@@ -63,6 +72,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { label: 'Overview', href: '/', icon: LayoutDashboard },
     { label: 'Products', href: '/products', icon: ShoppingBag },
     { label: 'Categories', href: '/categories', icon: ListCollapse },
+    { label: 'Customers', href: '/customers', icon: Users },
     { label: 'Orders & Sales', href: '/orders', icon: Compass },
     { label: 'Inventory', href: '/inventory', icon: Boxes },
     { label: 'Shipping', href: '/shipping', icon: Truck },
