@@ -1,31 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Monitor, Laptop, Wrench, Settings, ArrowRight, ShieldCheck, Landmark, ShieldAlert, Cpu } from 'lucide-react';
 import ProductCard, { Product } from '@/components/ProductCard';
+import HeroImage from '@/components/HeroImage';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-
-function HeroImage() {
-  const [imageError, setImageError] = useState(false);
-
-  if (imageError) {
-    return (
-      <div className="absolute inset-0 z-0 bg-gradient-to-br from-primary/20 via-background to-background" />
-    );
-  }
-
-  return (
-    <Image
-      src="https://images.unsplash.com/photo-1591488320449-011701bb6704?q=80&w=2071&auto=format&fit=crop"
-      alt="Gaming PC with colorful components"
-      fill
-      className="object-cover"
-      priority
-      onError={() => setImageError(true)}
-    />
-  );
-}
 
 async function getFeaturedProducts(): Promise<Product[]> {
   try {
