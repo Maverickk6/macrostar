@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ShoppingBag, Trash2, ArrowRight, Minus, Plus, ArrowLeft, Landmark } from 'lucide-react';
 import { useCart } from '@/store/useCart';
-import { formatNaira } from '@/lib/utils';
+import { formatNaira, getProductImageUrl } from '@/lib/utils';
 
 export default function CartPage() {
   const [mounted, setMounted] = useState(false);
@@ -74,12 +74,7 @@ export default function CartPage() {
 
             <div className="space-y-3">
               {items.map((item) => {
-                const firstImage = item.image;
-                const imgUrl = firstImage && firstImage.trim()
-                  ? firstImage.startsWith('/uploads')
-                    ? `${apiURL}${firstImage}`
-                    : firstImage
-                  : `https://via.placeholder.com/600x600/334155/e2e8f0?text=${encodeURIComponent(item.name.substring(0, 20))}`;
+                const imgUrl = getProductImageUrl(item.image, item.name, apiURL);
 
                 return (
                   <div
@@ -162,7 +157,7 @@ export default function CartPage() {
                   <span className="font-medium text-foreground">{formatNaira(subtotal)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Shipping (Edo State Flat)</span>
+                  <span className="text-muted-foreground">Shipping (calculated at checkout)</span>
                   <span className="font-medium text-foreground">{formatNaira(shippingFee)}</span>
                 </div>
 

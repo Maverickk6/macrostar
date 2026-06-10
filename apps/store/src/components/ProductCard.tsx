@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ShoppingCart, Eye, Heart, Star } from 'lucide-react';
-import { formatNaira } from '@/lib/utils';
+import { formatNaira, getProductImageUrl } from '@/lib/utils';
 import { useCart } from '@/store/useCart';
 import { useWishlist } from '@/store/useWishlist';
 import { toast } from 'sonner';
@@ -81,12 +81,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     : 0;
 
   const apiURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-  const firstImage = product.images?.[0];
-  const imageUrl = firstImage && firstImage.trim()
-    ? firstImage.startsWith('/uploads')
-      ? `${apiURL}${firstImage}`
-      : firstImage
-    : `https://via.placeholder.com/600x600/334155/e2e8f0?text=${encodeURIComponent(product.name.substring(0, 20))}`;
+  const imageUrl = getProductImageUrl(product.images?.[0] || null, product.name, apiURL);
 
   return (
     <div className="group relative rounded-2xl border border-border/60 bg-card overflow-hidden hover:shadow-xl hover:shadow-primary/5 hover:border-primary/40 transition-all duration-300 flex flex-col h-full">

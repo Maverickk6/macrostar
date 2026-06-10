@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { eq, desc, like, or, inArray } from 'drizzle-orm';
+import { eq, desc, like, or, inArray, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { customers } from '../db/schema.js';
 import { authMiddleware } from '../middleware/auth.js';
@@ -24,7 +24,7 @@ customersRouter.get('/', authMiddleware, async (c) => {
     ));
   }
 
-  const [allCustomers, [{ count }]] = await Promise.all([
+  const [allCustomers, [{ totalCount }]] = await Promise.all([
     db.select({
       id: customers.id,
       name: customers.name,
@@ -42,17 +42,19 @@ customersRouter.get('/', authMiddleware, async (c) => {
       .orderBy(desc(customers.createdAt))
       .limit(limitNum)
       .offset(offset),
-    db.select({ count: customers.id }).from(customers),
+    db.select({ totalCount: sql<number>`count(*)::int` })
+      .from(customers)
+      .where(conditions.length > 0 ? or(...conditions) : undefined),
   ]);
 
   return c.json({
     success: true,
     data: allCustomers,
     meta: {
-      total: count.length,
+      total: totalCount,
       page: pageNum,
       limit: limitNum,
-      totalPages: Math.ceil(count.length / limitNum),
+      totalPages: Math.ceil(totalCount / limitNum),
     },
   });
 });
@@ -62,7 +64,17 @@ customersRouter.get('/:id', authMiddleware, async (c) => {
   const id = parseInt(c.req.param('id'));
 
   const [customer] = await db
-    .select()
+    .select({
+      id: customers.id,
+      name: customers.name,
+      email: customers.email,
+      phone: customers.phone,
+      avatar: customers.avatar,
+      address: customers.address,
+      isActive: customers.isActive,
+      createdAt: customers.createdAt,
+      updatedAt: customers.updatedAt,
+    })
     .from(customers)
     .where(eq(customers.id, id))
     .limit(1);
@@ -96,10 +108,21 @@ customersRouter.put('/:id', authMiddleware, async (c) => {
     Object.entries(allowedFields).filter(([_, value]) => value !== undefined)
   );
 
-  const [updated] = await db.update(customers)
+  const [updated] = await db
+    .update(customers)
     .set(updateData)
     .where(eq(customers.id, id))
-    .returning();
+    .returning({
+      id: customers.id,
+      name: customers.name,
+      email: customers.email,
+      phone: customers.phone,
+      avatar: customers.avatar,
+      address: customers.address,
+      isActive: customers.isActive,
+      createdAt: customers.createdAt,
+      updatedAt: customers.updatedAt,
+    });
 
   return c.json({ success: true, data: updated });
 });

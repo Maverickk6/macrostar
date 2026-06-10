@@ -299,6 +299,14 @@ customerAuth.put('/update-profile', async (c) => {
       );
     }
 
+    // Ensure token is for a customer, not an admin
+    if (decoded.type !== 'customer') {
+      return c.json(
+        { success: false, message: 'Invalid token' },
+        401
+      );
+    }
+
     const body = await c.req.json();
     const { name, phone, address, avatar } = body;
 
@@ -358,6 +366,14 @@ customerAuth.put('/change-password', async (c) => {
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET!);
     } catch (err) {
+      return c.json(
+        { success: false, message: 'Invalid token' },
+        401
+      );
+    }
+
+    // Ensure token is for a customer, not an admin
+    if (decoded.type !== 'customer') {
       return c.json(
         { success: false, message: 'Invalid token' },
         401

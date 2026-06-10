@@ -106,7 +106,11 @@ settingsRouter.put('/', async (c) => {
       // Only handle "table does not exist" error as non-fatal
       const errorMessage = err?.message || '';
       if (errorMessage.includes('does not exist') || errorMessage.includes('relation')) {
-        console.warn('Settings table might not exist, settings not persisted to database');
+        console.error('Settings table does not exist, cannot persist settings:', err);
+        return c.json(
+          { success: false, message: 'Settings table does not exist. Please run database migrations.' },
+          500
+        );
       } else {
         // Rethrow unexpected DB errors
         console.error('Error updating settings in database:', err);

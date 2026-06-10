@@ -7,7 +7,7 @@ import { Heart, Trash2, ShoppingCart, ArrowLeft, Zap } from 'lucide-react';
 import { useWishlist } from '@/store/useWishlist';
 import { useCart } from '@/store/useCart';
 import { toast } from 'sonner';
-import { formatNaira } from '@/lib/utils';
+import { formatNaira, getProductImageUrl } from '@/lib/utils';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -114,12 +114,7 @@ export default function WishlistPage() {
       {/* Grid Layout */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {items.map((item) => {
-          const firstImage = item.image;
-          const imgUrl = firstImage && firstImage.trim()
-            ? firstImage.startsWith('/uploads')
-              ? `${API_URL}${firstImage}`
-              : firstImage
-            : `https://via.placeholder.com/600x600/334155/e2e8f0?text=${encodeURIComponent(item.name.substring(0, 20))}`;
+          const imgUrl = getProductImageUrl(item.image, item.name, API_URL);
 
           const hasDiscount = item.comparePrice && parseFloat(item.comparePrice) > parseFloat(item.price);
           const discountPercent = hasDiscount

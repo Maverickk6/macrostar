@@ -7,7 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ShoppingCart, ArrowLeft, ShieldCheck, MapPin, Truck, RefreshCw, Star, Landmark, Heart } from 'lucide-react';
 import { useCart } from '@/store/useCart';
 import { useWishlist } from '@/store/useWishlist';
-import { formatNaira } from '@/lib/utils';
+import { formatNaira, getProductImageUrl } from '@/lib/utils';
 import { toast } from 'sonner';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
@@ -194,12 +194,7 @@ export default function ProductDetailPage() {
 
   const placeholderImage = `https://via.placeholder.com/600x600/334155/e2e8f0?text=${encodeURIComponent(product.name.substring(0, 20))}`;
   const apiURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-  const firstImage = product.images?.[0];
-  const imageUrl = firstImage && firstImage.trim()
-    ? firstImage.startsWith('/uploads')
-      ? `${apiURL}${firstImage}`
-      : firstImage
-    : placeholderImage;
+  const imageUrl = getProductImageUrl(product.images?.[0] || null, product.name, apiURL);
 
   const hasDiscount = product.comparePrice && parseFloat(product.comparePrice) > parseFloat(product.price);
 
@@ -316,6 +311,7 @@ export default function ProductDetailPage() {
               <div className="flex gap-3">
                 <button
                   onClick={handleToggleWishlist}
+                  aria-label={isInWishlist ? 'In Wishlist' : 'Add to Wishlist'}
                   className={`flex items-center justify-center gap-2 px-4 py-4 border-2 rounded-xl font-bold transition-all duration-300 ${
                     isInWishlist
                       ? 'border-red-500 text-red-500 bg-red-500/10'

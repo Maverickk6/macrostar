@@ -50,7 +50,7 @@ export default function AdminProductsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
-  const [specs, setSpecs] = useState<Record<string, string>>({});
+  const [specs, setSpecs] = useState<Array<{ key: string; value: string }>>([]);
 
   const fetchProducts = async () => {
     try {
@@ -130,6 +130,14 @@ export default function AdminProductsPage() {
     setSubmitting(true);
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
+    // Convert specs array to record, filtering out empty keys
+    const specsRecord = specs
+      .filter((spec) => spec.key.trim() !== '')
+      .reduce((acc, spec) => {
+        acc[spec.key] = spec.value;
+        return acc;
+      }, {} as Record<string, string>);
+
     const payload = {
       name,
       slug,
@@ -142,7 +150,7 @@ export default function AdminProductsPage() {
       categoryId: categoryId ? parseInt(categoryId) : null,
       status: 'active',
       images: images,
-      specs: specs,
+      specs: specsRecord,
     };
 
     try {
@@ -265,7 +273,7 @@ export default function AdminProductsPage() {
     setDescription('');
     setCategoryId('');
     setImages([]);
-    setSpecs({});
+    setSpecs([]);
   };
 
   const filteredProducts = products.filter((p) => {
@@ -396,16 +404,15 @@ export default function AdminProductsPage() {
             <div className="space-y-1 sm:col-span-3">
               <label className="text-[10px] font-bold text-muted-foreground uppercase">Specifications (Key-Value Pairs)</label>
               <div className="space-y-2">
-                {Object.entries(specs).map(([key, value], index) => (
+                {specs.map((spec, index) => (
                   <div key={index} className="flex gap-2">
                     <input
                       type="text"
                       placeholder="Specification (e.g., OS, RAM, Processor)"
-                      value={key}
+                      value={spec.key}
                       onChange={(e) => {
-                        const newSpecs = { ...specs };
-                        delete newSpecs[key];
-                        newSpecs[e.target.value] = value;
+                        const newSpecs = [...specs];
+                        newSpecs[index] = { ...newSpecs[index], key: e.target.value };
                         setSpecs(newSpecs);
                       }}
                       className="flex-1 bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-4 py-2 text-xs"
@@ -413,17 +420,18 @@ export default function AdminProductsPage() {
                     <input
                       type="text"
                       placeholder="Value (e.g., Windows 11, 16GB, Intel i7)"
-                      value={value}
+                      value={spec.value}
                       onChange={(e) => {
-                        setSpecs({ ...specs, [key]: e.target.value });
+                        const newSpecs = [...specs];
+                        newSpecs[index] = { ...newSpecs[index], value: e.target.value };
+                        setSpecs(newSpecs);
                       }}
                       className="flex-1 bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-4 py-2 text-xs"
                     />
                     <button
                       type="button"
                       onClick={() => {
-                        const newSpecs = { ...specs };
-                        delete newSpecs[key];
+                        const newSpecs = specs.filter((_, i) => i !== index);
                         setSpecs(newSpecs);
                       }}
                       className="p-2 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500/20"
@@ -434,7 +442,7 @@ export default function AdminProductsPage() {
                 ))}
                 <button
                   type="button"
-                  onClick={() => setSpecs({ ...specs, '': '' })}
+                  onClick={() => setSpecs([...specs, { key: '', value: '' }])}
                   className="w-full py-2 bg-primary/10 text-primary rounded-xl text-xs font-medium hover:bg-primary/20"
                 >
                   + Add Specification
