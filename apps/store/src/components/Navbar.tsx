@@ -3,15 +3,17 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ShoppingCart, Menu, X, Monitor, MapPin, Phone, Heart, LogOut, User, Settings, ShoppingBag, LogIn } from 'lucide-react';
+import { ShoppingCart, Menu, X, Monitor, MapPin, Phone, Heart, LogOut, User, Settings, ShoppingBag, LogIn, Sun, Moon } from 'lucide-react';
 import { useCart } from '@/store/useCart';
 import { useWishlist } from '@/store/useWishlist';
 import { useAuth } from '@/store/useCustomerAuth';
+import { useTheme } from '@/lib/theme-provider';
 import { cn } from '@/lib/utils';
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { theme, toggleTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -117,6 +119,19 @@ export default function Navbar() {
 
             {/* Icons & Auth */}
             <div className="flex items-center gap-2 sm:gap-4">
+              {/* Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                className="p-2.5 hover:bg-muted rounded-full transition-colors group"
+                title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {theme === 'dark' ? (
+                  <Sun className="h-5 w-5 text-foreground group-hover:text-primary transition-colors" />
+                ) : (
+                  <Moon className="h-5 w-5 text-foreground group-hover:text-primary transition-colors" />
+                )}
+              </button>
+
               {/* Wishlist */}
               <Link href="/wishlist" className="relative p-2.5 hover:bg-muted rounded-full transition-colors group">
                 <Heart className="h-5 w-5 text-foreground group-hover:text-primary transition-colors" />

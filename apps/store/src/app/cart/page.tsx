@@ -2,13 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ShoppingBag, Trash2, ArrowRight, Minus, Plus, ArrowLeft, Landmark } from 'lucide-react';
 import { useCart } from '@/store/useCart';
-import { formatNaira } from '@/lib/utils';
+import { formatNaira, getProductImageUrl } from '@/lib/utils';
 
 export default function CartPage() {
   const [mounted, setMounted] = useState(false);
   const { items, updateQuantity, removeItem, clearCart, getSubtotal } = useCart();
+  const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     setMounted(true);
@@ -23,10 +25,9 @@ export default function CartPage() {
   }
 
   const subtotal = getSubtotal();
-  const shippingFee = subtotal > 0 ? 2500 : 0; // Flat shipping rate
-  const total = subtotal + shippingFee;
+  const shippingFee = 0; // Calculated at checkout based on state selection
+  const total = subtotal; // Final total is calculated at checkout with shipping
 
-  const placeholderImage = 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?q=80&w=600&auto=format&fit=crop';
   const apiURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
   return (
@@ -73,9 +74,7 @@ export default function CartPage() {
 
             <div className="space-y-3">
               {items.map((item) => {
-                const imgUrl = item.image?.startsWith('/uploads')
-                  ? `${apiURL}${item.image}`
-                  : item.image || placeholderImage;
+                const imgUrl = getProductImageUrl(item.image, item.name, apiURL);
 
                 return (
                   <div
@@ -85,7 +84,18 @@ export default function CartPage() {
                     {/* Left: Image & Name */}
                     <div className="flex items-center gap-4 w-full sm:w-auto">
                       <div className="w-16 h-16 rounded-xl overflow-hidden bg-muted border border-border shrink-0">
-                        <img src={imgUrl} alt={item.name} className="w-full h-full object-cover" />
+                        {imageErrors[item.id] ? (
+                          <img src={imgUrl} alt={item.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <Image
+                            src={imgUrl}
+                            alt={item.name}
+                            width={64}
+                            height={64}
+                            className="w-full h-full object-cover"
+                            onError={() => setImageErrors(prev => ({ ...prev, [item.id]: true }))}
+                          />
+                        )}
                       </div>
                       <div>
                         <h3 className="font-bold text-sm text-foreground line-clamp-1 hover:text-primary transition-colors">
@@ -147,7 +157,7 @@ export default function CartPage() {
                   <span className="font-medium text-foreground">{formatNaira(subtotal)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Shipping (Edo State Flat)</span>
+                  <span className="text-muted-foreground">Shipping (calculated at checkout)</span>
                   <span className="font-medium text-foreground">{formatNaira(shippingFee)}</span>
                 </div>
 

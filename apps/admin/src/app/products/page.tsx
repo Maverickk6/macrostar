@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '@/store/useAuth';
 import { Plus, Search, Edit2, Trash2, SlidersHorizontal, RefreshCw, X } from 'lucide-react';
 import { formatNaira } from '@/lib/utils';
@@ -49,6 +50,7 @@ export default function AdminProductsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [specs, setSpecs] = useState<Array<{ key: string; value: string }>>([]);
 
   const fetchProducts = async () => {
     try {
@@ -102,6 +104,7 @@ export default function AdminProductsPage() {
     setDescription('');
     setCategoryId('');
     setImages(prod.images || []);
+    setSpecs({});
     setShowAddForm(true);
 
     try {
@@ -110,6 +113,7 @@ export default function AdminProductsPage() {
         const json = await res.json();
         setDescription(json.data.description || '');
         setCategoryId(json.data.categoryId ? json.data.categoryId.toString() : '');
+        setSpecs(json.data.specs || {});
       }
     } catch (e) {
       console.error('Failed to pre-populate extra details:', e);
@@ -126,6 +130,14 @@ export default function AdminProductsPage() {
     setSubmitting(true);
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
+    // Convert specs array to record, filtering out empty keys
+    const specsRecord = specs
+      .filter((spec) => spec.key.trim() !== '')
+      .reduce((acc, spec) => {
+        acc[spec.key] = spec.value;
+        return acc;
+      }, {} as Record<string, string>);
+
     const payload = {
       name,
       slug,
@@ -138,6 +150,7 @@ export default function AdminProductsPage() {
       categoryId: categoryId ? parseInt(categoryId) : null,
       status: 'active',
       images: images,
+      specs: specsRecord,
     };
 
     try {
@@ -260,6 +273,7 @@ export default function AdminProductsPage() {
     setDescription('');
     setCategoryId('');
     setImages([]);
+    setSpecs([]);
   };
 
   const filteredProducts = products.filter((p) => {
@@ -388,6 +402,54 @@ export default function AdminProductsPage() {
               />
             </div>
             <div className="space-y-1 sm:col-span-3">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">Specifications (Key-Value Pairs)</label>
+              <div className="space-y-2">
+                {specs.map((spec, index) => (
+                  <div key={index} className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Specification (e.g., OS, RAM, Processor)"
+                      value={spec.key}
+                      onChange={(e) => {
+                        const newSpecs = [...specs];
+                        newSpecs[index] = { ...newSpecs[index], key: e.target.value };
+                        setSpecs(newSpecs);
+                      }}
+                      className="flex-1 bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-4 py-2 text-xs"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Value (e.g., Windows 11, 16GB, Intel i7)"
+                      value={spec.value}
+                      onChange={(e) => {
+                        const newSpecs = [...specs];
+                        newSpecs[index] = { ...newSpecs[index], value: e.target.value };
+                        setSpecs(newSpecs);
+                      }}
+                      className="flex-1 bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-4 py-2 text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newSpecs = specs.filter((_, i) => i !== index);
+                        setSpecs(newSpecs);
+                      }}
+                      className="p-2 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500/20"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setSpecs([...specs, { key: '', value: '' }])}
+                  className="w-full py-2 bg-primary/10 text-primary rounded-xl text-xs font-medium hover:bg-primary/20"
+                >
+                  + Add Specification
+                </button>
+              </div>
+            </div>
+            <div className="space-y-1 sm:col-span-3">
               <label className="text-[10px] font-bold text-muted-foreground uppercase">Product Images</label>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
@@ -410,9 +472,11 @@ export default function AdminProductsPage() {
                   <div className="grid grid-cols-4 gap-3">
                     {images.map((url, index) => (
                       <div key={index} className="relative group">
-                        <img
+                        <Image
                           src={url}
                           alt={`Product image ${index + 1}`}
+                          width={96}
+                          height={96}
                           className="w-full h-24 object-cover rounded-lg border border-border"
                         />
                         <button

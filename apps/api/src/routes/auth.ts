@@ -53,27 +53,45 @@ auth.get('/me', authMiddleware, async (c) => {
     email: users.email,
     role: users.role,
     createdAt: users.createdAt,
-  }).from(users).where(eq(users.id, payload.id));
+  })
+    .from(users)
+    .where(eq(users.id, payload.id))
+    .limit(1);
 
   if (!user) return c.json({ success: false, message: 'User not found' }, 404);
+
   return c.json({ success: true, data: user });
 });
 
-// POST /api/auth/change-password
-auth.post('/change-password', authMiddleware, async (c) => {
-  const payload = c.get('user') as { id: number };
+// PUT /api/auth/change-password — admin change password
+auth.put('/change-password', authMiddleware, async (c) => {
+  const payload = c.get('user') as { id: number; email: string; role: string };
   const { currentPassword, newPassword } = await c.req.json();
 
-  const [user] = await db.select().from(users).where(eq(users.id, payload.id));
+  if (!currentPassword || !newPassword) {
+    return c.json({ success: false, message: 'Current and new password are required' }, 400);
+  }
+
+  if (newPassword.length < 6) {
+    return c.json({ success: false, message: 'New password must be at least 6 characters' }, 400);
+  }
+
+  const [user] = await db.select().from(users).where(eq(users.id, payload.id)).limit(1);
+
   if (!user) return c.json({ success: false, message: 'User not found' }, 404);
 
   const isValid = await bcrypt.compare(currentPassword, user.password);
-  if (!isValid) return c.json({ success: false, message: 'Current password is incorrect' }, 400);
+  if (!isValid) {
+    return c.json({ success: false, message: 'Current password is incorrect' }, 401);
+  }
 
-  const hashed = await bcrypt.hash(newPassword, 10);
-  await db.update(users).set({ password: hashed, updatedAt: new Date() }).where(eq(users.id, payload.id));
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-  return c.json({ success: true, message: 'Password updated successfully' });
+  await db.update(users)
+    .set({ password: hashedPassword, updatedAt: new Date() })
+    .where(eq(users.id, payload.id));
+
+  return c.json({ success: true, message: 'Password changed successfully' });
 });
 
 export default auth;

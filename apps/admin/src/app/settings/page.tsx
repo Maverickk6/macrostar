@@ -16,7 +16,9 @@ import {
   AlertCircle,
   Building2,
   DollarSign,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Lock,
+  User
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -49,10 +51,15 @@ interface TaxSettings {
 
 export default function SettingsPage() {
   const token = useAuth((state) => state.token);
-  const [activeTab, setActiveTab] = useState<'store' | 'payment' | 'tax'>('store');
+  const [activeTab, setActiveTab] = useState<'store' | 'payment' | 'tax' | 'account'>('store');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Password Change State
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   // Store Settings
   const [storeSettings, setStoreSettings] = useState<StoreSettings>({
@@ -100,7 +107,7 @@ export default function SettingsPage() {
       }
 
       const data = await response.json();
-      
+
       if (data.success && data.data) {
         // Update state with fetched settings
         if (data.data.store) {
@@ -211,6 +218,55 @@ export default function SettingsPage() {
     }
   };
 
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!token) {
+      toast.error('Not authenticated');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error('New passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      toast.error('New password must be at least 8 characters');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const response = await fetch(`${API_URL}/api/auth/change-password`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to change password');
+      }
+
+      toast.success('Password changed successfully!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      toast.error(errorMessage || 'Failed to change password');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
@@ -272,6 +328,17 @@ export default function SettingsPage() {
         >
           <Percent className="h-4 w-4 inline mr-2" />
           Tax Settings
+        </button>
+        <button
+          onClick={() => setActiveTab('account')}
+          className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+            activeTab === 'account'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <User className="h-4 w-4 inline mr-2" />
+          Account Settings
         </button>
       </div>
 
@@ -553,6 +620,73 @@ export default function SettingsPage() {
               >
                 {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {saving ? 'Saving...' : 'Save Tax Settings'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {activeTab === 'account' && (
+        <div className="bg-card border border-border/60 rounded-2xl p-6 shadow-sm">
+          <form onSubmit={handlePasswordChange} className="space-y-6">
+            <div className="flex items-center gap-2 pb-4 border-b border-border/50">
+              <Lock className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-bold">Change Password</h2>
+            </div>
+
+            <div className="p-4 bg-blue-950/20 border border-blue-800/40 rounded-xl text-blue-200 text-xs">
+              <p className="font-semibold mb-1">Security Notice</p>
+              <p>Choose a strong password with at least 6 characters. Avoid using common words or personal information.</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-muted-foreground uppercase">Current Password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  required
+                  className="w-full bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm"
+                  placeholder="Enter your current password"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-muted-foreground uppercase">New Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  className="w-full bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm"
+                  placeholder="Enter your new password"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-muted-foreground uppercase">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  className="w-full bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-4 py-2.5 text-sm"
+                  placeholder="Confirm your new password"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4">
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/95 transition-colors disabled:opacity-50"
+              >
+                {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {saving ? 'Changing Password...' : 'Change Password'}
               </button>
             </div>
           </form>

@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import { ShoppingCart, ArrowLeft, ShieldCheck, MapPin, Truck, RefreshCw, Star, Landmark } from 'lucide-react';
+import { ShoppingCart, ArrowLeft, ShieldCheck, MapPin, Truck, RefreshCw, Star, Landmark, Heart } from 'lucide-react';
 import { useCart } from '@/store/useCart';
-import { formatNaira } from '@/lib/utils';
+import { useWishlist } from '@/store/useWishlist';
+import { formatNaira, getProductImageUrl } from '@/lib/utils';
 import { toast } from 'sonner';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
@@ -34,8 +36,13 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [imageError, setImageError] = useState(false);
 
   const addItem = useCart((state) => state.addItem);
+  const toggleItem = useWishlist((state) => state.toggleItem);
+  const items = useWishlist((state) => state.items);
+
+  const isInWishlist = product ? items.some((item) => item.id === product.id) : false;
 
   useEffect(() => {
     async function fetchProduct() {
@@ -171,11 +178,23 @@ export default function ProductDetailPage() {
     });
   };
 
-  const placeholderImage = 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?q=80&w=600&auto=format&fit=crop';
+  const handleToggleWishlist = () => {
+    if (!product) return;
+    toggleItem({
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      price: product.price,
+      image: product.images?.[0] || null,
+      sku: null,
+      stock: product.stock,
+    });
+    toast.success(isInWishlist ? 'Removed from wishlist' : 'Added to wishlist');
+  };
+
+  const placeholderImage = `https://via.placeholder.com/600x600/334155/e2e8f0?text=${encodeURIComponent(product.name.substring(0, 20))}`;
   const apiURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-  const imageUrl = product.images?.[0]?.startsWith('/uploads')
-    ? `${apiURL}${product.images[0]}`
-    : product.images?.[0] || placeholderImage;
+  const imageUrl = getProductImageUrl(product.images?.[0] || null, product.name, apiURL);
 
   const hasDiscount = product.comparePrice && parseFloat(product.comparePrice) > parseFloat(product.price);
 
@@ -207,11 +226,22 @@ export default function ProductDetailPage() {
                 Special Offer
               </span>
             )}
-            <img
-              src={imageUrl}
-              alt={product.name}
-              className="w-full h-full object-cover object-center"
-            />
+            {imageError ? (
+              <img
+                src={placeholderImage}
+                alt={product.name}
+                className="w-full h-full object-cover object-center"
+              />
+            ) : (
+              <Image
+                src={imageUrl}
+                alt={product.name}
+                width={600}
+                height={600}
+                className="w-full h-full object-cover object-center"
+                onError={() => setImageError(true)}
+              />
+            )}
           </div>
         </div>
 
@@ -278,13 +308,27 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              <button
-                onClick={handleAddToCart}
-                className="w-full flex items-center justify-center gap-2 py-4 bg-primary text-primary-foreground font-black rounded-xl hover:bg-primary/95 shadow-lg shadow-primary/20 transition-all duration-300"
-              >
-                <ShoppingCart className="h-5 w-5" />
-                <span>Add to Shopping Cart</span>
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleToggleWishlist}
+                  aria-label={isInWishlist ? 'In Wishlist' : 'Add to Wishlist'}
+                  className={`flex items-center justify-center gap-2 px-4 py-4 border-2 rounded-xl font-bold transition-all duration-300 ${
+                    isInWishlist
+                      ? 'border-red-500 text-red-500 bg-red-500/10'
+                      : 'border-border text-muted-foreground hover:border-primary hover:text-primary'
+                  }`}
+                >
+                  <Heart className={`h-5 w-5 ${isInWishlist ? 'fill-current' : ''}`} />
+                  <span className="hidden sm:inline">{isInWishlist ? 'In Wishlist' : 'Add to Wishlist'}</span>
+                </button>
+                <button
+                  onClick={handleAddToCart}
+                  className="flex-1 flex items-center justify-center gap-2 py-4 bg-primary text-primary-foreground font-black rounded-xl hover:bg-primary/95 shadow-lg shadow-primary/20 transition-all duration-300"
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  <span>Add to Shopping Cart</span>
+                </button>
+              </div>
             </div>
           ) : (
             <div className="p-4 bg-muted/50 text-muted-foreground text-sm rounded-xl text-center font-bold">

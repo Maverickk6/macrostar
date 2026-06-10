@@ -38,6 +38,7 @@ import analyticsRouter from './routes/analytics.js';
 import settingsRouter from './routes/settings.js';
 import contactRouter from './routes/contact.js';
 import uploadRouter from './routes/upload.js';
+import customersRouter from './routes/customers.js';
 import { securityHeaders, requestSizeLimit } from './middleware/security.js';
 import { generalRateLimit } from './middleware/rate-limit.js';
 
@@ -90,6 +91,7 @@ app.route('/api/analytics', analyticsRouter);
 app.route('/api/settings', settingsRouter);
 app.route('/api/contact', contactRouter);
 app.route('/api/upload', uploadRouter);
+app.route('/api/customers', customersRouter);
 
 // ─── 404 Handler ─────────────────────────────────────────────────────────────
 app.notFound((c) => c.json({ success: false, message: 'Route not found' }, 404));

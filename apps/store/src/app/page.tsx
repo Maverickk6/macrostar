@@ -1,7 +1,9 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Monitor, Laptop, Wrench, Settings, ArrowRight, ShieldCheck, Landmark, ShieldAlert, Cpu } from 'lucide-react';
 import ProductCard, { Product } from '@/components/ProductCard';
+import HeroImage from '@/components/HeroImage';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -103,11 +105,7 @@ export default async function HomePage() {
       <section className="relative overflow-hidden py-20 lg:py-28 border-b border-border/50">
         {/* Background Image with Overlay */}
         <div className="absolute inset-0 z-0">
-          <img
-            src="https://images.unsplash.com/photo-1591488320449-011701bb6704?q=80&w=2071&auto=format&fit=crop"
-            alt="Gaming PC with colorful components"
-            className="w-full h-full object-cover"
-          />
+          <HeroImage />
           <div className="absolute inset-0 bg-gradient-to-r from-background via-background/95 to-background/70" />
         </div>
 

@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import { db } from './index.js';
-import { users, categories, products } from './schema.js';
+import { users, categories, products, shippingZones } from './schema.js';
 
 async function seed() {
   console.log('🌱 Seeding database...');
@@ -223,6 +223,53 @@ async function seed() {
 
   await db.insert(products).values(productData as any).onConflictDoNothing();
   console.log(`✅ ${productData.length} products seeded`);
+
+  // ─── Shipping Zones (All 36 Nigerian States + FCT) ──────────────────────────
+  const shippingZoneData = [
+    // Tier 1 — South-South / nearby
+    { name: 'Edo State', state: 'Edo', region: 'South-South', baseRate: '5000', perKgRate: '200', estimatedDays: 1 },
+    { name: 'Delta State', state: 'Delta', region: 'South-South', baseRate: '7000', perKgRate: '200', estimatedDays: 2 },
+    { name: 'Rivers State', state: 'Rivers', region: 'South-South', baseRate: '7000', perKgRate: '250', estimatedDays: 2 },
+    { name: 'Bayelsa State', state: 'Bayelsa', region: 'South-South', baseRate: '7000', perKgRate: '250', estimatedDays: 2 },
+    { name: 'Akwa Ibom State', state: 'Akwa Ibom', region: 'South-South', baseRate: '7000', perKgRate: '250', estimatedDays: 2 },
+    { name: 'Cross River State', state: 'Cross River', region: 'South-South', baseRate: '7000', perKgRate: '250', estimatedDays: 2 },
+    // Tier 2 — South-West / South-East / North-Central
+    { name: 'Lagos State', state: 'Lagos', region: 'South-West', baseRate: '9000', perKgRate: '300', estimatedDays: 3 },
+    { name: 'Ogun State', state: 'Ogun', region: 'South-West', baseRate: '9000', perKgRate: '300', estimatedDays: 3 },
+    { name: 'Oyo State', state: 'Oyo', region: 'South-West', baseRate: '9000', perKgRate: '300', estimatedDays: 3 },
+    { name: 'Osun State', state: 'Osun', region: 'South-West', baseRate: '9000', perKgRate: '300', estimatedDays: 3 },
+    { name: 'Ondo State', state: 'Ondo', region: 'South-West', baseRate: '9000', perKgRate: '300', estimatedDays: 3 },
+    { name: 'Ekiti State', state: 'Ekiti', region: 'South-West', baseRate: '9000', perKgRate: '300', estimatedDays: 3 },
+    { name: 'Anambra State', state: 'Anambra', region: 'South-East', baseRate: '9000', perKgRate: '300', estimatedDays: 3 },
+    { name: 'Imo State', state: 'Imo', region: 'South-East', baseRate: '9000', perKgRate: '300', estimatedDays: 3 },
+    { name: 'Abia State', state: 'Abia', region: 'South-East', baseRate: '9000', perKgRate: '300', estimatedDays: 3 },
+    { name: 'Enugu State', state: 'Enugu', region: 'South-East', baseRate: '9000', perKgRate: '300', estimatedDays: 3 },
+    { name: 'Ebonyi State', state: 'Ebonyi', region: 'South-East', baseRate: '9000', perKgRate: '300', estimatedDays: 3 },
+    { name: 'Kogi State', state: 'Kogi', region: 'North-Central', baseRate: '9000', perKgRate: '300', estimatedDays: 3 },
+    { name: 'Benue State', state: 'Benue', region: 'North-Central', baseRate: '9000', perKgRate: '300', estimatedDays: 4 },
+    { name: 'Kwara State', state: 'Kwara', region: 'North-Central', baseRate: '9000', perKgRate: '300', estimatedDays: 4 },
+    { name: 'Nassarawa State', state: 'Nassarawa', region: 'North-Central', baseRate: '9000', perKgRate: '300', estimatedDays: 4 },
+    { name: 'Plateau State', state: 'Plateau', region: 'North-Central', baseRate: '9000', perKgRate: '300', estimatedDays: 4 },
+    { name: 'Niger State', state: 'Niger', region: 'North-Central', baseRate: '9000', perKgRate: '300', estimatedDays: 4 },
+    { name: 'FCT Abuja', state: 'FCT Abuja', region: 'North-Central', baseRate: '9000', perKgRate: '300', estimatedDays: 3 },
+    // Tier 3 — Far North
+    { name: 'Kaduna State', state: 'Kaduna', region: 'North-West', baseRate: '12000', perKgRate: '400', estimatedDays: 5 },
+    { name: 'Kano State', state: 'Kano', region: 'North-West', baseRate: '12000', perKgRate: '400', estimatedDays: 5 },
+    { name: 'Katsina State', state: 'Katsina', region: 'North-West', baseRate: '12000', perKgRate: '400', estimatedDays: 6 },
+    { name: 'Jigawa State', state: 'Jigawa', region: 'North-West', baseRate: '12000', perKgRate: '400', estimatedDays: 6 },
+    { name: 'Bauchi State', state: 'Bauchi', region: 'North-East', baseRate: '12000', perKgRate: '400', estimatedDays: 6 },
+    { name: 'Gombe State', state: 'Gombe', region: 'North-East', baseRate: '12000', perKgRate: '400', estimatedDays: 6 },
+    { name: 'Adamawa State', state: 'Adamawa', region: 'North-East', baseRate: '12000', perKgRate: '400', estimatedDays: 6 },
+    { name: 'Taraba State', state: 'Taraba', region: 'North-East', baseRate: '12000', perKgRate: '400', estimatedDays: 6 },
+    { name: 'Borno State', state: 'Borno', region: 'North-East', baseRate: '12000', perKgRate: '400', estimatedDays: 7 },
+    { name: 'Yobe State', state: 'Yobe', region: 'North-East', baseRate: '12000', perKgRate: '400', estimatedDays: 7 },
+    { name: 'Sokoto State', state: 'Sokoto', region: 'North-West', baseRate: '12000', perKgRate: '400', estimatedDays: 7 },
+    { name: 'Zamfara State', state: 'Zamfara', region: 'North-West', baseRate: '12000', perKgRate: '400', estimatedDays: 7 },
+    { name: 'Kebbi State', state: 'Kebbi', region: 'North-West', baseRate: '12000', perKgRate: '400', estimatedDays: 7 },
+  ];
+
+  await db.insert(shippingZones).values(shippingZoneData).onConflictDoNothing();
+  console.log(`✅ ${shippingZoneData.length} shipping zones seeded (all 36 states + FCT)`);
 
   console.log('\n🎉 Seed complete! MacroStar Technologies database is ready.');
   console.log('─────────────────────────────────────────────');

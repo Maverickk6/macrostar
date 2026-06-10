@@ -14,3 +14,14 @@ export function formatNaira(amount: number | string): string {
     minimumFractionDigits: 2
   }).format(value);
 }
+
+export function getProductImageUrl(image: string | null | undefined, productName: string, apiURL?: string): string {
+  const trimmedImage = image?.trim();
+  if (trimmedImage) {
+    if (trimmedImage.startsWith('/uploads') && apiURL) {
+      return `${apiURL}${trimmedImage}`;
+    }
+    return trimmedImage;
+  }
+  return `https://via.placeholder.com/600x600/334155/e2e8f0?text=${encodeURIComponent(productName.substring(0, 20))}`;
+}

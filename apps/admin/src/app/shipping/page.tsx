@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Loader, Trash2, Edit2, Plus, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatNaira } from '@/lib/utils';
+import { NIGERIA_STATES } from '@/lib/nigeria-states';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -141,14 +142,17 @@ export default function ShippingPage() {
 
             <div>
               <label className="block text-sm font-medium mb-1">State</label>
-              <input
-                type="text"
+              <select
                 value={formData.state}
                 onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="Lagos"
+                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none bg-background"
                 required
-              />
+              >
+                <option value="">Select a state...</option>
+                {NIGERIA_STATES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
             </div>
 
             <div>

@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { eq } from 'drizzle-orm';
+import { eq, ilike } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { shippingZones } from '../db/schema.js';
 
@@ -35,7 +35,7 @@ shippingRouter.post('/calculate', async (c) => {
     const zone = await db
       .select()
       .from(shippingZones)
-      .where(eq(shippingZones.state, state))
+      .where(ilike(shippingZones.state, state.trim()))
       .limit(1);
 
     if (zone.length === 0) {
@@ -149,8 +149,8 @@ shippingRouter.put('/zones/:id', async (c) => {
         state,
         city,
         region,
-        baseRate: baseRate ? parseFloat(baseRate) : undefined,
-        perKgRate: perKgRate ? parseFloat(perKgRate) : undefined,
+        baseRate: baseRate !== undefined && baseRate !== '' && !isNaN(parseFloat(baseRate)) ? parseFloat(baseRate) : undefined,
+        perKgRate: perKgRate !== undefined && perKgRate !== '' && !isNaN(parseFloat(perKgRate)) ? parseFloat(perKgRate) : undefined,
         estimatedDays,
         isActive,
       })
