@@ -23,6 +23,7 @@ export default function AdminInventoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [customStock, setCustomStock] = useState<Record<number, string>>({});
 
   const fetchInventory = async () => {
     try {
@@ -95,6 +96,46 @@ export default function AdminInventoryPage() {
     }
   };
 
+  const setStockDirectly = async (productId: number, newStock: number) => {
+    const item = inventory.find((i) => i.id === productId);
+    if (!item) return;
+
+    const change = newStock - item.stock;
+    if (change === 0) return;
+
+    setUpdatingId(productId);
+    const payload = {
+      change,
+      reason: 'Direct stock set',
+      reference: 'Admin manual stock set',
+    };
+
+    try {
+      const res = await fetch(`${API_URL}/api/inventory/${productId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error('Stock update failed');
+
+      toast.success('Stock updated successfully!');
+      fetchInventory();
+      setCustomStock((prev) => ({ ...prev, [productId]: '' }));
+    } catch (err) {
+      console.error(err);
+      toast.info('Simulated stock change.');
+      setInventory(inventory.map((i) =>
+        i.id === productId ? { ...i, stock: Math.max(0, newStock) } : i
+      ));
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   return (
     <div className="space-y-8 pb-8 text-sm">
       {/* Header */}
@@ -156,6 +197,14 @@ export default function AdminInventoryPage() {
                         >
                           <Minus className="h-3.5 w-3.5" />
                         </button>
+                        <input
+                          type="number"
+                          min="0"
+                          value={customStock[item.id] || item.stock}
+                          onChange={(e) => setCustomStock((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                          disabled={updatingId === item.id}
+                          className="w-16 px-2 py-1.5 bg-muted border border-border rounded-lg text-center font-semibold disabled:opacity-50"
+                        />
                         <button
                           disabled={updatingId === item.id}
                           onClick={() => adjustStock(item.id, 1)}
@@ -163,6 +212,15 @@ export default function AdminInventoryPage() {
                         >
                           <Plus className="h-3.5 w-3.5" />
                         </button>
+                        {customStock[item.id] && customStock[item.id] !== String(item.stock) && (
+                          <button
+                            disabled={updatingId === item.id}
+                            onClick={() => setStockDirectly(item.id, parseInt(customStock[item.id]) || 0)}
+                            className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg font-bold text-xs hover:bg-primary/90 transition-colors disabled:opacity-50"
+                          >
+                            Set
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
