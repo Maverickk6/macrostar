@@ -346,10 +346,10 @@ export default function AdminProductsPage() {
           for (const name of possibleNames) {
             if (row[name] !== undefined) return row[name];
           }
-          // Then try case-insensitive match as fallback
+          // Try case-insensitive and trimmed match
           const rowKeys = Object.keys(row);
           for (const possibleName of possibleNames) {
-            const matchedKey = rowKeys.find(key => key.toLowerCase() === possibleName.toLowerCase());
+            const matchedKey = rowKeys.find(key => key.trim().toLowerCase() === possibleName.trim().toLowerCase());
             if (matchedKey && row[matchedKey] !== undefined) return row[matchedKey];
           }
           return '';
@@ -360,15 +360,18 @@ export default function AdminProductsPage() {
 
         // Detect price column (exact matches first)
         const priceRaw = findValue(PRICE_COLUMN_VARIANTS);
-        const price = parseFloat(priceRaw) || 0;
+        const cleanPrice = String(priceRaw).replace(/[^0-9.]/g, '');
+        const price = parseFloat(cleanPrice) || 0;
 
         // Detect compare price column
         const comparePriceRaw = findValue(COMPARE_PRICE_COLUMN_VARIANTS);
-        const comparePrice = comparePriceRaw ? parseFloat(comparePriceRaw) : null;
+        const cleanComparePrice = comparePriceRaw ? String(comparePriceRaw).replace(/[^0-9.]/g, '') : '';
+        const comparePrice = cleanComparePrice ? parseFloat(cleanComparePrice) : null;
 
         // Detect stock column
         const stockRaw = findValue(STOCK_COLUMN_VARIANTS);
-        const stock = parseInt(stockRaw) || 0;
+        const cleanStock = String(stockRaw).replace(/[^0-9]/g, '');
+        const stock = parseInt(cleanStock) || 0;
 
         // Detect brand column
         const brand = findValue(BRAND_COLUMN_VARIANTS) || null;

@@ -195,13 +195,37 @@ productsRouter.post('/bulk', authMiddleware, async (c) => {
       const slug = productData.slug || productData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       const sku = productData.sku || generateSKU(productData.name, productData.brand);
 
-      const [product] = await db.insert(products).values({
-        ...productData,
-        slug,
-        sku,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }).returning();
+      const [existing] = await db.select().from(products).where(eq(products.slug, slug));
+      
+      let product;
+      if (existing) {
+        const updateData: any = { updatedAt: new Date() };
+        if (productData.price > 0) updateData.price = productData.price;
+        if (productData.comparePrice !== null && productData.comparePrice !== undefined) updateData.comparePrice = productData.comparePrice;
+        if (productData.stock > 0) updateData.stock = productData.stock;
+        if (productData.brand) updateData.brand = productData.brand;
+        if (productData.sku) updateData.sku = productData.sku;
+        if (productData.description) updateData.description = productData.description;
+        if (productData.categoryId) updateData.categoryId = productData.categoryId;
+        if (productData.shortDescription) updateData.shortDescription = productData.shortDescription;
+        if (productData.status && productData.status !== 'active') updateData.status = productData.status;
+        if (productData.featured) updateData.featured = productData.featured;
+        if (productData.lowStockThreshold && productData.lowStockThreshold !== 5) updateData.lowStockThreshold = productData.lowStockThreshold;
+
+        if (Object.keys(updateData).length > 1) {
+          [product] = await db.update(products).set(updateData).where(eq(products.id, existing.id)).returning();
+        } else {
+          product = existing;
+        }
+      } else {
+        [product] = await db.insert(products).values({
+          ...productData,
+          slug,
+          sku,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }).returning();
+      }
 
       results.push({ success: true, data: product, row: i + 1 });
     } catch (err) {
