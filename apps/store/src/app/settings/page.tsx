@@ -46,13 +46,14 @@ export default function SettingsPage() {
     if (mounted && customer) {
       setName(customer.name || '');
       setPhone(customer.phone || '');
-      setAddress(customer.address || {
+      const defaultAddress = {
         street: '',
         city: '',
         state: '',
         country: 'Nigeria',
         zip: '',
-      });
+      };
+      setAddress({ ...defaultAddress, ...customer.address });
     }
   }, [mounted, customer]);
 

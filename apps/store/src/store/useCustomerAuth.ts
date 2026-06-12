@@ -106,13 +106,13 @@ export const useAuth = create<AuthState>()(
             isLoading: false,
           });
 
-          // Fetch cart/wishlist from server in background for better UX
-          useCart.getState().fetchCart();
-          useWishlist.getState().fetchWishlist();
+          // Sync guest cart/wishlist to server first
+          await useCart.getState().syncCartToServer();
+          await useWishlist.getState().syncWishlistToServer();
 
-          // Sync guest cart/wishlist to server in background
-          useCart.getState().syncCartToServer();
-          useWishlist.getState().syncWishlistToServer();
+          // Then fetch merged cart/wishlist from server
+          await useCart.getState().fetchCart();
+          await useWishlist.getState().fetchWishlist();
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Login failed';
           set({ error: message, isLoading: false });

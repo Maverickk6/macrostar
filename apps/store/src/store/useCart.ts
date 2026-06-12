@@ -169,7 +169,7 @@ export const useCart = create<CartState>()(
             
             // Create a map of server items for easy lookup
             const serverItemMap = new Map(
-              serverItems.map((item: any) => [item.productId, item])
+              serverItems.map((item: any) => [item.id, item])
             );
 
             // Add or update items from local cart
@@ -177,14 +177,13 @@ export const useCart = create<CartState>()(
               const existingItem = serverItemMap.get(item.id);
               if (existingItem) {
                 // Update quantity if item exists
-                await fetch(`${API_URL}/api/cart`, {
+                await fetch(`${API_URL}/api/cart/${item.id}`, {
                   method: 'PUT',
                   headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`,
                   },
                   body: JSON.stringify({ 
-                    productId: item.id, 
                     quantity: item.quantity + existingItem.quantity 
                   }),
                 });

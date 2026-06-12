@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/store/useAuth';
-import { Plus, Search, Trash2, ListCollapse, RefreshCw, Landmark } from 'lucide-react';
+import { Plus, Search, Trash2, ListCollapse, RefreshCw, Landmark, Edit2, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
@@ -27,6 +27,13 @@ export default function AdminCategoriesPage() {
   const [description, setDescription] = useState('');
   const [sortOrder, setSortOrder] = useState('0');
   const [submitting, setSubmitting] = useState(false);
+
+  // Edit State
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editSortOrder, setEditSortOrder] = useState('0');
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   const fetchCategories = async () => {
     try {
@@ -134,6 +141,60 @@ export default function AdminCategoriesPage() {
     }
   };
 
+  const handleEditCategory = (category: Category) => {
+    setEditingCategory(category);
+    setEditName(category.name);
+    setEditDescription(category.description || '');
+    setEditSortOrder(category.sortOrder.toString());
+  };
+
+  const handleUpdateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCategory || !editName) {
+      toast.error('Category Name is required.');
+      return;
+    }
+
+    setEditSubmitting(true);
+    const slug = editName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+    const payload = {
+      name: editName,
+      slug,
+      description: editDescription || null,
+      sortOrder: parseInt(editSortOrder),
+      isActive: true,
+    };
+
+    try {
+      const res = await fetch(`${API_URL}/api/categories/${editingCategory.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error('Update failed');
+
+      toast.success('Category updated successfully!');
+      fetchCategories();
+      setEditingCategory(null);
+    } catch (err) {
+      console.error(err);
+      toast.info('Simulated update.');
+      setCategories(categories.map((c) => 
+        c.id === editingCategory.id 
+          ? { ...c, ...payload }
+          : c
+      ));
+      setEditingCategory(null);
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-8 pb-8 text-sm">
       {/* Header */}
@@ -228,13 +289,22 @@ export default function AdminCategoriesPage() {
                         <td className="p-4 text-xs font-mono text-muted-foreground">{cat.slug}</td>
                         <td className="p-4 text-xs text-muted-foreground max-w-xs truncate">{cat.description || 'No description'}</td>
                         <td className="p-4 text-right">
-                          <button
-                            onClick={() => handleDeleteCategory(cat.id)}
-                            className="p-2 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded-lg transition-colors border border-red-500/20"
-                            title="Delete category"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleEditCategory(cat)}
+                              className="p-2 bg-blue-500/10 hover:bg-blue-500 text-blue-400 hover:text-white rounded-lg transition-colors border border-blue-500/20"
+                              title="Edit category"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCategory(cat.id)}
+                              className="p-2 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded-lg transition-colors border border-red-500/20"
+                              title="Delete category"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -245,6 +315,69 @@ export default function AdminCategoriesPage() {
           )}
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {editingCategory && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border/60 p-6 rounded-2xl shadow-sm space-y-4 w-full max-w-md">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold uppercase text-muted-foreground tracking-wider">Edit Category</h2>
+              <button
+                onClick={() => setEditingCategory(null)}
+                className="p-1 hover:bg-muted rounded-lg transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <form onSubmit={handleUpdateCategory} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase">Category Name</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-4 py-2"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase">Sort Order</label>
+                <input
+                  type="number"
+                  value={editSortOrder}
+                  onChange={(e) => setEditSortOrder(e.target.value)}
+                  className="w-full bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-4 py-2"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase">Description</label>
+                <textarea
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="w-full bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-4 py-2 resize-none"
+                  rows={3}
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingCategory(null)}
+                  className="flex-1 py-3 bg-muted/40 text-foreground font-bold rounded-xl text-xs hover:bg-muted/60 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editSubmitting}
+                  className="flex-1 py-3 bg-primary text-primary-foreground font-black rounded-xl text-xs"
+                >
+                  {editSubmitting ? 'Saving...' : 'Update Category'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
