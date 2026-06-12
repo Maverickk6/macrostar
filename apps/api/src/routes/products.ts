@@ -6,6 +6,17 @@ import { authMiddleware } from '../middleware/auth.js';
 
 const productsRouter = new Hono();
 
+// Helper function to generate SKU
+function generateSKU(name: string, brand?: string | null): string {
+  const prefix = 'MST';
+  const code = brand 
+    ? brand.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '')
+    : name.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const codePart = code || 'GEN';
+  const randomNum = Math.floor(Math.random() * 900) + 100; // 3-digit number (100-999)
+  return `${prefix}-${codePart}-${randomNum}`;
+}
+
 // GET /api/products — public list with filters
 productsRouter.get('/', async (c) => {
   const {
@@ -62,6 +73,7 @@ productsRouter.get('/', async (c) => {
       price: products.price,
       comparePrice: products.comparePrice,
       stock: products.stock,
+      sku: products.sku,
       images: products.images,
       featured: products.featured,
       status: products.status,
@@ -113,10 +125,12 @@ productsRouter.post('/', authMiddleware, async (c) => {
   const body = await c.req.json();
 
   const slug = body.slug || body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const sku = body.sku || generateSKU(body.name, body.brand);
 
   const [product] = await db.insert(products).values({
     ...body,
     slug,
+    sku,
     createdAt: new Date(),
     updatedAt: new Date(),
   }).returning();
@@ -161,6 +175,73 @@ productsRouter.delete('/:id', authMiddleware, async (c) => {
 
   await db.delete(products).where(eq(products.id, id));
   return c.json({ success: true, message: 'Product deleted' });
+});
+
+// POST /api/products/bulk — admin bulk create
+productsRouter.post('/bulk', authMiddleware, async (c) => {
+  const body = await c.req.json();
+  const { products: productsData } = body;
+
+  if (!Array.isArray(productsData) || productsData.length === 0) {
+    return c.json({ success: false, message: 'Products array is required' }, 400);
+  }
+
+  const results = [];
+  const errors = [];
+
+  for (let i = 0; i < productsData.length; i++) {
+    const productData = productsData[i];
+    try {
+      const slug = productData.slug || productData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const sku = productData.sku || generateSKU(productData.name, productData.brand);
+
+      const [existing] = await db.select().from(products).where(eq(products.slug, slug));
+      
+      let product;
+      if (existing) {
+        const updateData: any = { updatedAt: new Date() };
+        if (productData.price > 0) updateData.price = productData.price;
+        if (productData.comparePrice !== null && productData.comparePrice !== undefined) updateData.comparePrice = productData.comparePrice;
+        if (productData.stock > 0) updateData.stock = productData.stock;
+        if (productData.brand) updateData.brand = productData.brand;
+        if (productData.sku) updateData.sku = productData.sku;
+        if (productData.description) updateData.description = productData.description;
+        if (productData.categoryId) updateData.categoryId = productData.categoryId;
+        if (productData.shortDescription) updateData.shortDescription = productData.shortDescription;
+        if (productData.status && productData.status !== 'active') updateData.status = productData.status;
+        if (productData.featured) updateData.featured = productData.featured;
+        if (productData.lowStockThreshold && productData.lowStockThreshold !== 5) updateData.lowStockThreshold = productData.lowStockThreshold;
+
+        if (Object.keys(updateData).length > 1) {
+          [product] = await db.update(products).set(updateData).where(eq(products.id, existing.id)).returning();
+        } else {
+          product = existing;
+        }
+      } else {
+        [product] = await db.insert(products).values({
+          ...productData,
+          slug,
+          sku,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }).returning();
+      }
+
+      results.push({ success: true, data: product, row: i + 1 });
+    } catch (err) {
+      console.error(`Error inserting product at row ${i + 1}:`, err);
+      errors.push({ row: i + 1, error: 'Failed to insert product', data: productData });
+    }
+  }
+
+  return c.json({
+    success: true,
+    message: `Bulk upload completed: ${results.length} successful, ${errors.length} failed`,
+    data: {
+      successful: results,
+      failed: errors,
+    },
+  });
 });
 
 export default productsRouter;
