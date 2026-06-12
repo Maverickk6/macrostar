@@ -42,6 +42,17 @@ export default function CustomerDetailPage() {
   const token = useAuth((state) => state.token);
   const customerId = parseInt(params.id as string);
 
+  // Validate customer ID
+  if (isNaN(customerId)) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12 text-muted-foreground">
+          Invalid customer ID
+        </div>
+      </div>
+    );
+  }
+
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);

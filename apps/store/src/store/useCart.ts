@@ -156,24 +156,69 @@ export const useCart = create<CartState>()(
 
         const items = get().items;
         try {
-          // Clear server cart first
-          await fetch(`${API_URL}/api/cart`, {
-            method: 'DELETE',
+          // Fetch current server cart to merge with local items
+          const res = await fetch(`${API_URL}/api/cart`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
           });
 
-          // Add all items to server
-          for (const item of items) {
+          if (res.ok) {
+            const json = await res.json();
+            const serverItems = json.data || [];
+            
+            // Create a map of server items for easy lookup
+            const serverItemMap = new Map(
+              serverItems.map((item: any) => [item.productId, item])
+            );
+
+            // Add or update items from local cart
+            for (const item of items) {
+              const existingItem = serverItemMap.get(item.id);
+              if (existingItem) {
+                // Update quantity if item exists
+                await fetch(`${API_URL}/api/cart`, {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({ 
+                    productId: item.id, 
+                    quantity: item.quantity + existingItem.quantity 
+                  }),
+                });
+              } else {
+                // Add new item
+                await fetch(`${API_URL}/api/cart`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({ productId: item.id, quantity: item.quantity }),
+                });
+              }
+            }
+          } else {
+            // If fetch fails, fall back to clearing and adding all items
             await fetch(`${API_URL}/api/cart`, {
-              method: 'POST',
+              method: 'DELETE',
               headers: {
-                'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`,
               },
-              body: JSON.stringify({ productId: item.id, quantity: item.quantity }),
             });
+
+            for (const item of items) {
+              await fetch(`${API_URL}/api/cart`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ productId: item.id, quantity: item.quantity }),
+              });
+            }
           }
         } catch (err) {
           console.error('Failed to sync cart to server:', err);

@@ -112,24 +112,54 @@ export const useWishlist = create<WishlistState>()(
 
         const items = get().items;
         try {
-          // Clear server wishlist first
-          await fetch(`${API_URL}/api/wishlist`, {
-            method: 'DELETE',
+          // Fetch current server wishlist to merge with local items
+          const res = await fetch(`${API_URL}/api/wishlist`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
           });
 
-          // Add all items to server
-          for (const item of items) {
+          if (res.ok) {
+            const json = await res.json();
+            const serverItems = json.data || [];
+            
+            // Create a set of server item IDs for easy lookup
+            const serverItemIds = new Set(
+              serverItems.map((item: any) => item.productId)
+            );
+
+            // Add items from local wishlist that don't exist on server
+            for (const item of items) {
+              if (!serverItemIds.has(item.id)) {
+                await fetch(`${API_URL}/api/wishlist`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({ productId: item.id }),
+                });
+              }
+            }
+          } else {
+            // If fetch fails, fall back to clearing and adding all items
             await fetch(`${API_URL}/api/wishlist`, {
-              method: 'POST',
+              method: 'DELETE',
               headers: {
-                'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`,
               },
-              body: JSON.stringify({ productId: item.id }),
             });
+
+            for (const item of items) {
+              await fetch(`${API_URL}/api/wishlist`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ productId: item.id }),
+              });
+            }
           }
         } catch (err) {
           console.error('Failed to sync wishlist to server:', err);

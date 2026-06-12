@@ -312,6 +312,7 @@ export default function AdminCustomersPage() {
                           onClick={() => handleSendSingleEmail(customer.id)}
                           className="p-1.5 bg-muted hover:bg-primary hover:text-primary-foreground rounded-lg border border-border transition-colors"
                           title="Send email"
+                          aria-label="Send email to customer"
                         >
                           <Mail className="h-3.5 w-3.5" />
                         </button>

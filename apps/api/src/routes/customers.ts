@@ -72,6 +72,7 @@ customersRouter.get('/:id', authMiddleware, async (c) => {
       avatar: customers.avatar,
       address: customers.address,
       isActive: customers.isActive,
+      lastLoginAt: customers.lastLoginAt,
       createdAt: customers.createdAt,
       updatedAt: customers.updatedAt,
     })

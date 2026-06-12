@@ -10,7 +10,7 @@ import { authRateLimit } from '../middleware/rate-limit.js';
 const customerAuth = new Hono();
 
 // POST /api/auth/customer/register
-customerAuth.post('/register', async (c) => {
+customerAuth.post('/register', authRateLimit, async (c) => {
   try {
     const body = await c.req.json();
     const { name, email, password, confirmPassword, phone, address } = body;

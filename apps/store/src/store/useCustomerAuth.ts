@@ -3,19 +3,21 @@ import { persist } from 'zustand/middleware';
 import { useCart } from './useCart';
 import { useWishlist } from './useWishlist';
 
+export interface Address {
+  street?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  zip?: string;
+}
+
 export interface Customer {
   id: number;
   name: string;
   email: string;
   phone?: string;
   avatar?: string;
-  address?: {
-    street?: string;
-    city?: string;
-    state?: string;
-    country?: string;
-    zip?: string;
-  };
+  address?: Address;
 }
 
 interface AuthState {
@@ -25,12 +27,13 @@ interface AuthState {
   error: string | null;
 
   // Actions
-  register: (name: string, email: string, password: string, phone?: string, address?: any) => Promise<void>;
+  register: (name: string, email: string, password: string, phone?: string, address?: Address) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   clearError: () => void;
   fetchCurrentCustomer: () => Promise<void>;
   updateProfile: (data: Partial<Customer>) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   isAuthenticated: () => boolean;
 }
 
@@ -187,6 +190,38 @@ export const useAuth = create<AuthState>()(
           });
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to update profile';
+          set({ error: message, isLoading: false });
+          throw error;
+        }
+      },
+
+      changePassword: async (currentPassword, newPassword) => {
+        const token = get().token;
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        set({ isLoading: true, error: null });
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+          const response = await fetch(`${apiUrl}/api/auth/customer/change-password`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ currentPassword, newPassword }),
+          });
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.message || 'Failed to change password');
+          }
+
+          set({ isLoading: false });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to change password';
           set({ error: message, isLoading: false });
           throw error;
         }
