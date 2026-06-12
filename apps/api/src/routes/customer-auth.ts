@@ -126,7 +126,7 @@ customerAuth.post('/register', async (c) => {
 });
 
 // POST /api/auth/customer/login
-customerAuth.post('/login', authRateLimit, async (c) => {
+customerAuth.post('/login', async (c) => {
   try {
     const body = await c.req.json();
     const { email, password } = body;

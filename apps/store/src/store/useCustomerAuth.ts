@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useCart } from './useCart';
+import { useWishlist } from './useWishlist';
 
 export interface Customer {
   id: number;
@@ -63,6 +65,10 @@ export const useAuth = create<AuthState>()(
             throw new Error(result.message || 'Registration failed');
           }
 
+          // Sync guest cart/wishlist to server on successful registration
+          await useCart.getState().syncCartToServer();
+          await useWishlist.getState().syncWishlistToServer();
+
           set({
             customer: result.data.customer,
             token: result.data.token,
@@ -96,6 +102,14 @@ export const useAuth = create<AuthState>()(
             token: result.data.token,
             isLoading: false,
           });
+
+          // Fetch cart/wishlist from server in background for better UX
+          useCart.getState().fetchCart();
+          useWishlist.getState().fetchWishlist();
+
+          // Sync guest cart/wishlist to server in background
+          useCart.getState().syncCartToServer();
+          useWishlist.getState().syncWishlistToServer();
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Login failed';
           set({ error: message, isLoading: false });
@@ -104,6 +118,10 @@ export const useAuth = create<AuthState>()(
       },
 
       logout: () => {
+        // Clear cart/wishlist on logout but don't delete from database
+        useCart.getState().clearCart(false);
+        useWishlist.getState().clearWishlist(false);
+        
         set({
           customer: null,
           token: null,
@@ -132,7 +150,7 @@ export const useAuth = create<AuthState>()(
             set({ customer: result.data });
           } else {
             // Token is invalid, logout
-            set({ customer: null, token: null });
+            get().logout();
           }
         } catch (error) {
           console.error('Failed to fetch customer:', error);
