@@ -70,6 +70,10 @@ cart.post('/', async (c) => {
       return c.json({ success: false, message: 'Product ID required' }, 400);
     }
 
+    if (!quantity || quantity < 1 || !Number.isInteger(quantity)) {
+      return c.json({ success: false, message: 'Quantity must be a positive integer' }, 400);
+    }
+
     // Check if product exists
     const [product] = await db
       .select()
@@ -94,18 +98,31 @@ cart.post('/', async (c) => {
       .limit(1);
 
     if (existingItem) {
+      // Check if requested quantity exceeds stock
+      if (existingItem.quantity + quantity > product.stock) {
+        return c.json({ success: false, message: 'Requested quantity exceeds available stock' }, 409);
+      }
       // Update quantity
-      const newQuantity = Math.min(existingItem.quantity + quantity, product.stock);
       await db
         .update(cartItems)
-        .set({ quantity: newQuantity, updatedAt: new Date() })
+        .set({ quantity: existingItem.quantity + quantity, updatedAt: new Date() })
         .where(eq(cartItems.id, existingItem.id));
     } else {
-      // Add new item
+      // Check if requested quantity exceeds stock
+      if (quantity > product.stock) {
+        return c.json({ success: false, message: 'Requested quantity exceeds available stock' }, 409);
+      }
+      // Add new item with upsert to handle concurrent requests
       await db.insert(cartItems).values({
         customerId,
         productId,
-        quantity: Math.min(quantity, product.stock),
+        quantity: quantity,
+      }).onConflictDoUpdate({
+        target: [cartItems.customerId, cartItems.productId],
+        set: { 
+          quantity: sql`${cartItems.quantity} + ${quantity}`,
+          updatedAt: new Date(),
+        },
       });
     }
 

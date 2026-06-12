@@ -9,6 +9,7 @@ import {
   timestamp,
   jsonb,
   pgEnum,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -58,7 +59,9 @@ export const cartItems = pgTable('cart_items', {
   quantity: integer('quantity').notNull().default(1),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (table) => ({
+  customerProductUnique: uniqueIndex('cart_items_customer_product_unique').on(table.customerId, table.productId),
+}));
 
 // ─── Wishlist Items ─────────────────────────────────────────────────────────────
 export const wishlistItems = pgTable('wishlist_items', {
@@ -66,7 +69,9 @@ export const wishlistItems = pgTable('wishlist_items', {
   customerId: integer('customer_id').references(() => customers.id, { onDelete: 'cascade' }).notNull(),
   productId: integer('product_id').references(() => products.id).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (table) => ({
+  customerProductUnique: uniqueIndex('wishlist_items_customer_product_unique').on(table.customerId, table.productId),
+}));
 
 // ─── Categories ───────────────────────────────────────────────────────────────
 export const categories = pgTable('categories', {

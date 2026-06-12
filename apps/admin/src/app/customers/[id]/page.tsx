@@ -43,7 +43,7 @@ export default function CustomerDetailPage() {
   const customerId = parseInt(params.id as string);
 
   // Validate customer ID
-  if (isNaN(customerId)) {
+  if (isNaN(customerId) || customerId <= 0) {
     return (
       <div className="p-6">
         <div className="text-center py-12 text-muted-foreground">

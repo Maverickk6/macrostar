@@ -79,27 +79,11 @@ wishlist.post('/', async (c) => {
       return c.json({ success: false, message: 'Product not found' }, 404);
     }
 
-    // Check if item already in wishlist
-    const [existingItem] = await db
-      .select()
-      .from(wishlistItems)
-      .where(
-        and(
-          eq(wishlistItems.customerId, customerId),
-          eq(wishlistItems.productId, productId)
-        )
-      )
-      .limit(1);
-
-    if (existingItem) {
-      return c.json({ success: false, message: 'Item already in wishlist' }, 400);
-    }
-
-    // Add new item
+    // Add new item with upsert to handle concurrent requests
     await db.insert(wishlistItems).values({
       customerId,
       productId,
-    });
+    }).onConflictDoNothing();
 
     return c.json({ success: true, message: 'Item added to wishlist' });
   } catch (error) {
