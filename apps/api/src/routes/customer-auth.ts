@@ -13,7 +13,7 @@ const customerAuth = new Hono();
 customerAuth.post('/register', authRateLimit, async (c) => {
   try {
     const body = await c.req.json();
-    const { name, email, password, confirmPassword, phone } = body;
+    const { name, email, password, confirmPassword, phone, address } = body;
 
     // Validation
     if (!email || !password || !name) {
@@ -71,6 +71,7 @@ customerAuth.post('/register', authRateLimit, async (c) => {
         email,
         password: hashedPassword,
         phone: phone || null,
+        address: address || null,
       })
       .returning({
         id: customers.id,
@@ -92,7 +93,7 @@ customerAuth.post('/register', authRateLimit, async (c) => {
     const token = jwt.sign(
       { id: customer.id, email: customer.email, type: 'customer' },
       process.env.JWT_SECRET!,
-      { expiresIn: '1h' } // Reduced from 7d to 1h for better security
+      { expiresIn: '1d' } // 7 days for better user experience
     );
 
     // Send registration confirmation email (fire and forget)
@@ -125,7 +126,7 @@ customerAuth.post('/register', authRateLimit, async (c) => {
 });
 
 // POST /api/auth/customer/login
-customerAuth.post('/login', authRateLimit, async (c) => {
+customerAuth.post('/login', async (c) => {
   try {
     const body = await c.req.json();
     const { email, password } = body;
@@ -179,7 +180,7 @@ customerAuth.post('/login', authRateLimit, async (c) => {
     const token = jwt.sign(
       { id: customer.id, email: customer.email, type: 'customer' },
       process.env.JWT_SECRET!,
-      { expiresIn: '1h' } // Reduced from 7d to 1h for better security
+      { expiresIn: '7d' } // 7 days for better user experience
     );
 
     return c.json({

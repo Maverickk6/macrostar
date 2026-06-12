@@ -50,6 +50,24 @@ export const customers = pgTable('customers', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// ─── Cart Items ─────────────────────────────────────────────────────────────────
+export const cartItems = pgTable('cart_items', {
+  id: serial('id').primaryKey(),
+  customerId: integer('customer_id').references(() => customers.id, { onDelete: 'cascade' }).notNull(),
+  productId: integer('product_id').references(() => products.id).notNull(),
+  quantity: integer('quantity').notNull().default(1),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ─── Wishlist Items ─────────────────────────────────────────────────────────────
+export const wishlistItems = pgTable('wishlist_items', {
+  id: serial('id').primaryKey(),
+  customerId: integer('customer_id').references(() => customers.id, { onDelete: 'cascade' }).notNull(),
+  productId: integer('product_id').references(() => products.id).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // ─── Categories ───────────────────────────────────────────────────────────────
 export const categories = pgTable('categories', {
   id: serial('id').primaryKey(),
@@ -235,6 +253,8 @@ export const categoriesRelations = relations(categories, ({ one, many }) => ({
 export const customersRelations = relations(customers, ({ many }) => ({
   orders: many(orders),
   reviews: many(reviews),
+  cartItems: many(cartItems),
+  wishlistItems: many(wishlistItems),
 }));
 
 export const productsRelations = relations(products, ({ one, many }) => ({
@@ -242,6 +262,8 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   orderItems: many(orderItems),
   inventoryLogs: many(inventoryLogs),
   reviews: many(reviews),
+  cartItems: many(cartItems),
+  wishlistItems: many(wishlistItems),
 }));
 
 export const ordersRelations = relations(orders, ({ one, many }) => ({
@@ -261,4 +283,14 @@ export const inventoryLogsRelations = relations(inventoryLogs, ({ one }) => ({
 export const reviewsRelations = relations(reviews, ({ one }) => ({
   product: one(products, { fields: [reviews.productId], references: [products.id] }),
   customer: one(customers, { fields: [reviews.customerId], references: [customers.id] }),
+}));
+
+export const cartItemsRelations = relations(cartItems, ({ one }) => ({
+  customer: one(customers, { fields: [cartItems.customerId], references: [customers.id] }),
+  product: one(products, { fields: [cartItems.productId], references: [products.id] }),
+}));
+
+export const wishlistItemsRelations = relations(wishlistItems, ({ one }) => ({
+  customer: one(customers, { fields: [wishlistItems.customerId], references: [customers.id] }),
+  product: one(products, { fields: [wishlistItems.productId], references: [products.id] }),
 }));

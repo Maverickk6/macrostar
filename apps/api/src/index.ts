@@ -39,6 +39,8 @@ import settingsRouter from './routes/settings.js';
 import contactRouter from './routes/contact.js';
 import uploadRouter from './routes/upload.js';
 import customersRouter from './routes/customers.js';
+import cartRouter from './routes/cart.js';
+import wishlistRouter from './routes/wishlist.js';
 import { securityHeaders, requestSizeLimit } from './middleware/security.js';
 import { generalRateLimit } from './middleware/rate-limit.js';
 
@@ -92,6 +94,8 @@ app.route('/api/settings', settingsRouter);
 app.route('/api/contact', contactRouter);
 app.route('/api/upload', uploadRouter);
 app.route('/api/customers', customersRouter);
+app.route('/api/cart', cartRouter);
+app.route('/api/wishlist', wishlistRouter);
 
 // ─── 404 Handler ─────────────────────────────────────────────────────────────
 app.notFound((c) => c.json({ success: false, message: 'Route not found' }, 404));
