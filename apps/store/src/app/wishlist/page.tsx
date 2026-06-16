@@ -116,11 +116,11 @@ export default function WishlistPage() {
         {items.map((item) => {
           const imgUrl = getProductImageUrl(item.image, item.name, API_URL);
 
-          const hasDiscount = item.comparePrice && parseFloat(item.comparePrice) > parseFloat(item.price);
+          const hasDiscount = item.comparePrice && parseFloat(item.comparePrice || '0') > parseFloat(item.price || '0');
           const discountPercent = hasDiscount
             ? Math.round(
-                ((parseFloat(item.comparePrice!) - parseFloat(item.price)) /
-                  parseFloat(item.comparePrice!)) *
+                ((parseFloat(item.comparePrice || '0') - parseFloat(item.price || '0')) /
+                  parseFloat(item.comparePrice || '0')) *
                   100
               )
             : 0;

@@ -7,6 +7,7 @@ export interface WishlistItem {
   name: string;
   slug: string;
   price: string;
+  comparePrice?: string | null;
   image: string | null;
   sku: string | null;
   stock: number;
