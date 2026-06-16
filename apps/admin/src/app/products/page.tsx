@@ -1,12 +1,28 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/store/useAuth';
-import { Plus, Search, Edit2, Trash2, SlidersHorizontal, RefreshCw, X } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, SlidersHorizontal, RefreshCw, X, Upload, Download } from 'lucide-react';
 import { formatNaira } from '@/lib/utils';
 import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
+import { 
+  NAME_COLUMN_VARIANTS, 
+  PRICE_COLUMN_VARIANTS, 
+  COMPARE_PRICE_COLUMN_VARIANTS, 
+  STOCK_COLUMN_VARIANTS, 
+  BRAND_COLUMN_VARIANTS, 
+  SKU_COLUMN_VARIANTS, 
+  DESCRIPTION_COLUMN_VARIANTS, 
+  CATEGORY_ID_COLUMN_VARIANTS, 
+  SHORT_DESCRIPTION_COLUMN_VARIANTS, 
+  STATUS_COLUMN_VARIANTS, 
+  FEATURED_COLUMN_VARIANTS, 
+  LOW_STOCK_THRESHOLD_COLUMN_VARIANTS 
+} from './columnDetection';
+
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -32,11 +48,17 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(50);
+  const [totalCount, setTotalCount] = useState(0);
+
   // Search & Filters
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
 
   // Add Product Form State
   const [name, setName] = useState('');
@@ -52,10 +74,35 @@ export default function AdminProductsPage() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [specs, setSpecs] = useState<Array<{ key: string; value: string }>>([]);
 
-  const fetchProducts = async () => {
+  // Bulk Upload State
+  const [parsedProducts, setParsedProducts] = useState<any[]>([]);
+  const [bulkUploading, setBulkUploading] = useState(false);
+  const [bulkUploadResults, setBulkUploadResults] = useState<any>(null);
+  const [skuManuallyEdited, setSkuManuallyEdited] = useState(false);
+
+  // Helper function to generate SKU
+  const generateFrontendSKU = (productName: string, productBrand?: string | null) => {
+    const prefix = 'MST';
+    const code = productBrand 
+      ? productBrand.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '')
+      : productName.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const codePart = code || 'GEN';
+    const randomNum = Math.floor(Math.random() * 900) + 100; // 3-digit number (100-999)
+    return `${prefix}-${codePart}-${randomNum}`;
+  };
+
+  // Auto-generate SKU when name or brand changes (if not manually edited)
+  useEffect(() => {
+    if (!editingProduct && !skuManuallyEdited && name) {
+      setSku(generateFrontendSKU(name, brand || null));
+    }
+  }, [name, brand, editingProduct, skuManuallyEdited]);
+
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/products?status=all`);
+      const searchParam = search ? `&search=${encodeURIComponent(search)}` : '';
+      const res = await fetch(`${API_URL}/api/products?status=all&limit=${pageSize}&page=${currentPage}${searchParam}`);
       const json = await res.json();
 
       const catRes = await fetch(`${API_URL}/api/categories/flat`);
@@ -63,6 +110,7 @@ export default function AdminProductsPage() {
 
       if (res.ok) {
         setProducts(json.data || []);
+        setTotalCount(json.meta.total || 0);
         setCategories(catJson.data || []);
         setError(null);
       } else {
@@ -84,14 +132,15 @@ export default function AdminProductsPage() {
         { id: 9, name: 'Windows 11 Pro Installation', slug: 'windows-11-pro-installation', price: '15000.00', comparePrice: null, stock: 999, brand: 'Microsoft', status: 'active', sku: 'MST-SW-001', images: [] },
         { id: 10, name: 'Laptop Repair Service', slug: 'laptop-repair-service', price: '10000.00', comparePrice: null, stock: 999, brand: null, status: 'active', sku: 'MST-REP-001', images: [] },
       ]);
+      setTotalCount(10);
     } finally {
       setLoading(false);
     }
-  };
+  }, [search, currentPage, pageSize]);
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [fetchProducts]);
 
   const handleEditClick = async (prod: Product) => {
     setEditingProduct(prod);
@@ -101,10 +150,11 @@ export default function AdminProductsPage() {
     setStock(prod.stock.toString());
     setBrand(prod.brand || '');
     setSku(prod.sku || '');
+    setSkuManuallyEdited(true); // Don't auto-generate when editing
     setDescription('');
     setCategoryId('');
     setImages(prod.images || []);
-    setSpecs({});
+    setSpecs([]);
     setShowAddForm(true);
 
     try {
@@ -113,7 +163,14 @@ export default function AdminProductsPage() {
         const json = await res.json();
         setDescription(json.data.description || '');
         setCategoryId(json.data.categoryId ? json.data.categoryId.toString() : '');
-        setSpecs(json.data.specs || {});
+        // Convert specs object to array format
+        if (json.data.specs && typeof json.data.specs === 'object') {
+          const specsArray = Object.entries(json.data.specs).map(([key, value]) => ({
+            key,
+            value: String(value),
+          }));
+          setSpecs(specsArray);
+        }
       }
     } catch (e) {
       console.error('Failed to pre-populate extra details:', e);
@@ -270,19 +327,176 @@ export default function AdminProductsPage() {
     setStock('5');
     setBrand('');
     setSku('');
+    setSkuManuallyEdited(false);
     setDescription('');
     setCategoryId('');
     setImages([]);
     setSpecs([]);
   };
 
-  const filteredProducts = products.filter((p) => {
-    const matchesSearch =
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.brand?.toLowerCase().includes(search.toLowerCase()) ||
-      p.sku?.toLowerCase().includes(search.toLowerCase());
-    return matchesSearch;
-  });
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const workbook = XLSX.read(new Uint8Array(event.target?.result as ArrayBuffer), { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+      // Flexible column mapping - detect common column name variations
+      const mappedProducts = jsonData.map((row: any) => {
+        // Helper to find value from multiple possible column names (case-sensitive exact match first)
+        const findValue = (possibleNames: string[]) => {
+          // First try exact case-sensitive match
+          for (const name of possibleNames) {
+            if (row[name] !== undefined) return row[name];
+          }
+          // Try case-insensitive and trimmed match
+          const rowKeys = Object.keys(row);
+          for (const possibleName of possibleNames) {
+            const matchedKey = rowKeys.find(key => key.trim().toLowerCase() === possibleName.trim().toLowerCase());
+            if (matchedKey && row[matchedKey] !== undefined) return row[matchedKey];
+          }
+          return '';
+        };
+
+        // Detect name column (exact matches first)
+        const name = findValue(NAME_COLUMN_VARIANTS);
+
+        // Detect price column (exact matches first)
+        const priceRaw = findValue(PRICE_COLUMN_VARIANTS);
+        const cleanPrice = String(priceRaw).replace(/[^0-9.]/g, '');
+        const price = parseFloat(cleanPrice) || 0;
+
+        // Detect compare price column
+        const comparePriceRaw = findValue(COMPARE_PRICE_COLUMN_VARIANTS);
+        const cleanComparePrice = comparePriceRaw ? String(comparePriceRaw).replace(/[^0-9.]/g, '') : '';
+        const comparePrice = cleanComparePrice ? parseFloat(cleanComparePrice) : null;
+
+        // Detect stock column
+        const stockRaw = findValue(STOCK_COLUMN_VARIANTS);
+        const cleanStock = String(stockRaw).replace(/[^0-9]/g, '');
+        const stock = parseInt(cleanStock) || 0;
+
+        // Detect brand column
+        const brand = findValue(BRAND_COLUMN_VARIANTS) || null;
+
+        // Detect SKU column
+        const sku = findValue(SKU_COLUMN_VARIANTS) || null;
+
+        // Detect description column
+        const description = findValue(DESCRIPTION_COLUMN_VARIANTS) || '';
+
+        // Detect category ID column
+        const categoryIdRaw = findValue(CATEGORY_ID_COLUMN_VARIANTS);
+        const categoryId = categoryIdRaw ? parseInt(categoryIdRaw) : null;
+
+        // Detect short description column
+        const shortDescription = findValue(SHORT_DESCRIPTION_COLUMN_VARIANTS) || '';
+
+        // Detect status column
+        const status = findValue(STATUS_COLUMN_VARIANTS) || 'active';
+
+        // Detect featured column
+        const featuredRaw = findValue(FEATURED_COLUMN_VARIANTS);
+        const featured = featuredRaw === true || featuredRaw === 'true' || featuredRaw === 'yes' || featuredRaw === 'Yes' || featuredRaw === 'YES' || featuredRaw === 1 || featuredRaw === '1';
+
+        // Detect low stock threshold column
+        const lowStockThresholdRaw = findValue(LOW_STOCK_THRESHOLD_COLUMN_VARIANTS);
+        const lowStockThreshold = parseInt(lowStockThresholdRaw) || 5;
+
+        return {
+          name,
+          price,
+          comparePrice,
+          stock,
+          brand,
+          sku,
+          description,
+          categoryId,
+          shortDescription,
+          status,
+          featured,
+          lowStockThreshold,
+        };
+      });
+
+      setParsedProducts(mappedProducts);
+      toast.success(`Parsed ${mappedProducts.length} products from Excel file`);
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handleBulkUpload = async () => {
+    if (parsedProducts.length === 0) {
+      toast.error('No products to upload');
+      return;
+    }
+
+    // Validate required fields for each product
+    for (let i = 0; i < parsedProducts.length; i++) {
+      const product = parsedProducts[i];
+      if (!product.name || product.name.trim() === '') {
+        toast.error(`Row ${i + 1}: Product name is required`);
+        return;
+      }
+      if (product.price == null || product.price === '') {
+        toast.error(`Row ${i + 1}: Product price is required`);
+        return;
+      }
+    }
+
+    setBulkUploading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/products/bulk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ products: parsedProducts }),
+      });
+
+      if (!res.ok) throw new Error('Bulk upload failed');
+
+      const json = await res.json();
+      setBulkUploadResults(json.data);
+      toast.success(json.message);
+      fetchProducts();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to upload products');
+    } finally {
+      setBulkUploading(false);
+    }
+  };
+
+  const downloadTemplate = () => {
+    const template = [
+      {
+        name: 'Sample Product',
+        price: 1000,
+        comparePrice: 1200,
+        stock: 10,
+        brand: 'Brand Name',
+        sku: '',
+        description: 'Product description',
+        categoryId: '',
+        shortDescription: 'Short description',
+        status: 'active',
+        featured: false,
+        lowStockThreshold: 5,
+      },
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(template);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Products');
+    XLSX.writeFile(workbook, 'product_upload_template.xlsx');
+  };
+
 
   return (
     <div className="space-y-8 pb-8">
@@ -292,13 +506,22 @@ export default function AdminProductsPage() {
           <h1 className="text-2xl font-black tracking-tight">Product Catalog</h1>
           <p className="text-xs text-muted-foreground">Manage active models, parts, gaming gear, prices, and specs.</p>
         </div>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-primary text-primary-foreground text-xs font-bold rounded-xl hover:bg-primary/95 transition-colors self-start sm:self-auto"
-        >
-          {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          <span>{showAddForm ? 'Close Form' : 'New Product'}</span>
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={() => setShowBulkUpload(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition-colors"
+          >
+            <Upload className="h-4 w-4" />
+            <span>Bulk Upload</span>
+          </button>
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-primary text-primary-foreground text-xs font-bold rounded-xl hover:bg-primary/95 transition-colors"
+          >
+            {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            <span>{showAddForm ? 'Close Form' : 'New Product'}</span>
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -372,7 +595,10 @@ export default function AdminProductsPage() {
                 type="text"
                 placeholder="MST-LAP-023"
                 value={sku}
-                onChange={(e) => setSku(e.target.value)}
+                onChange={(e) => {
+                  setSku(e.target.value);
+                  setSkuManuallyEdited(true);
+                }}
                 className="w-full bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-4 py-2"
               />
             </div>
@@ -510,7 +736,10 @@ export default function AdminProductsPage() {
             type="text"
             placeholder="Search catalog by name, brand, SKU..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-4 py-2.5 pl-10"
           />
           <Search className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-muted-foreground" />
@@ -523,16 +752,16 @@ export default function AdminProductsPage() {
           <RefreshCw className="h-8 w-8 text-primary animate-spin" />
           <p className="text-sm text-muted-foreground">Retrieving catalog item status...</p>
         </div>
-      ) : filteredProducts.length === 0 ? (
+      ) : products.length === 0 ? (
         <div className="text-center py-20 bg-card border border-border/40 rounded-2xl">
           <p className="text-sm text-muted-foreground">No matching products in catalog.</p>
         </div>
       ) : (
         <div className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-sm">
-          <div className="overflow-x-auto text-sm">
+          <div className="overflow-auto max-h-[70vh] text-sm relative">
             <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-muted/30 text-xs font-bold text-muted-foreground uppercase border-b border-border/50">
+              <thead className="sticky top-0 z-10 shadow-sm">
+                <tr className="bg-muted/95 backdrop-blur-sm text-xs font-bold text-muted-foreground uppercase border-b border-border/50">
                   <th className="p-4">SKU</th>
                   <th className="p-4">Product</th>
                   <th className="p-4">Price</th>
@@ -542,7 +771,7 @@ export default function AdminProductsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
-                {filteredProducts.map((prod) => (
+                {products.map((prod) => (
                   <tr key={prod.id} className="hover:bg-muted/10 transition-colors">
                     <td className="p-4 font-mono text-xs font-bold text-muted-foreground">{prod.sku || 'N/A'}</td>
                     <td className="p-4">
@@ -575,6 +804,219 @@ export default function AdminProductsPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+          
+          {/* Pagination Controls */}
+          {totalCount > pageSize && (
+            <div className="flex items-center justify-between mt-4 px-2">
+              <div className="text-xs text-muted-foreground">
+                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} products
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 bg-muted/40 hover:bg-muted/60 border border-border rounded-lg text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+                <span className="text-xs font-bold text-foreground">
+                  Page {currentPage} of {Math.ceil(totalCount / pageSize)}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalCount / pageSize)))}
+                  disabled={currentPage >= Math.ceil(totalCount / pageSize)}
+                  className="px-3 py-1.5 bg-muted/40 hover:bg-muted/60 border border-border rounded-lg text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Bulk Upload Modal */}
+      {showBulkUpload && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border/60 p-6 rounded-2xl shadow-sm space-y-4 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold uppercase text-muted-foreground tracking-wider">Bulk Product Upload</h2>
+              <button
+                onClick={() => {
+                  setShowBulkUpload(false);
+                  setParsedProducts([]);
+                  setBulkUploadResults(null);
+                }}
+                className="p-1 hover:bg-muted rounded-lg transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={downloadTemplate}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-muted/40 hover:bg-muted/60 border border-border rounded-lg text-xs font-bold transition-colors"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Download Template</span>
+                </button>
+                <span className="text-xs text-muted-foreground">Download the Excel template to see the required format</span>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase">Upload Excel File (.xlsx or .xls)</label>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileUpload}
+                  className="w-full bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-4 py-2"
+                />
+              </div>
+
+              {parsedProducts.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold text-foreground">Preview ({parsedProducts.length} products)</h3>
+                    <button
+                      onClick={() => setParsedProducts([])}
+                      className="text-xs text-red-400 hover:text-red-300"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <div className="bg-muted/20 border border-border rounded-xl overflow-hidden max-h-60 overflow-y-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/30">
+                        <tr>
+                          <th className="p-2 text-left font-bold text-muted-foreground">Name</th>
+                          <th className="p-2 text-left font-bold text-muted-foreground">Price</th>
+                          <th className="p-2 text-left font-bold text-muted-foreground">Stock</th>
+                          <th className="p-2 text-left font-bold text-muted-foreground">Brand</th>
+                          <th className="p-2 text-left font-bold text-muted-foreground">SKU</th>
+                          <th className="p-2 text-left font-bold text-muted-foreground">Description</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/40">
+                        {parsedProducts.slice(0, 10).map((product, index) => (
+                          <tr key={index}>
+                            <td className="p-2">
+                              <input
+                                type="text"
+                                value={product.name}
+                                onChange={(e) => {
+                                  setParsedProducts(prev => prev.map((p, i) => i === index ? { ...p, name: e.target.value } : p));
+                                }}
+                                className="w-full bg-muted/40 border border-border rounded px-2 py-1"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="number"
+                                value={product.price}
+                                onChange={(e) => {
+                                  setParsedProducts(prev => prev.map((p, i) => i === index ? { ...p, price: parseFloat(e.target.value) || 0 } : p));
+                                }}
+                                className="w-20 bg-muted/40 border border-border rounded px-2 py-1"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="number"
+                                value={product.stock}
+                                onChange={(e) => {
+                                  setParsedProducts(prev => prev.map((p, i) => i === index ? { ...p, stock: parseInt(e.target.value) || 0 } : p));
+                                }}
+                                className="w-16 bg-muted/40 border border-border rounded px-2 py-1"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="text"
+                                value={product.brand || ''}
+                                onChange={(e) => {
+                                  setParsedProducts(prev => prev.map((p, i) => i === index ? { ...p, brand: e.target.value || null } : p));
+                                }}
+                                className="w-24 bg-muted/40 border border-border rounded px-2 py-1"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="text"
+                                value={product.sku || ''}
+                                onChange={(e) => {
+                                  setParsedProducts(prev => prev.map((p, i) => i === index ? { ...p, sku: e.target.value || null } : p));
+                                }}
+                                className="w-32 bg-muted/40 border border-border rounded px-2 py-1 font-mono"
+                                placeholder="Auto-generated"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="text"
+                                value={product.description || ''}
+                                onChange={(e) => {
+                                  setParsedProducts(prev => prev.map((p, i) => i === index ? { ...p, description: e.target.value } : p));
+                                }}
+                                className="w-48 bg-muted/40 border border-border rounded px-2 py-1"
+                                placeholder="Description"
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                        {parsedProducts.length > 10 && (
+                          <tr>
+                            <td className="p-2 text-muted-foreground" colSpan={6}>
+                              ... and {parsedProducts.length - 10} more products
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {bulkUploadResults && (
+                <div className="space-y-2">
+                  <h3 className="text-xs font-bold text-foreground">Upload Results</h3>
+                  <div className="bg-muted/20 border border-border rounded-xl p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="font-bold text-green-400">✓ Successful:</span>
+                      <span>{bulkUploadResults.successful.length} products</span>
+                    </div>
+                    {bulkUploadResults.failed.length > 0 && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="font-bold text-red-400">✗ Failed:</span>
+                        <span>{bulkUploadResults.failed.length} products</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowBulkUpload(false);
+                    setParsedProducts([]);
+                    setBulkUploadResults(null);
+                  }}
+                  className="flex-1 py-3 bg-muted/40 text-foreground font-bold rounded-xl text-xs hover:bg-muted/60 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBulkUpload}
+                  disabled={parsedProducts.length === 0 || bulkUploading}
+                  className="flex-1 py-3 bg-primary text-primary-foreground font-black rounded-xl text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {bulkUploading ? 'Uploading...' : 'Upload Products'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

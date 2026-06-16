@@ -29,6 +29,10 @@ function ProductsContent() {
   const [maxPrice, setMaxPrice] = useState('');
   const [featuredOnly, setFeaturedOnly] = useState(false);
 
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   // Fetch Categories
   useEffect(() => {
     async function fetchCategories() {
@@ -65,12 +69,14 @@ function ProductsContent() {
       if (featuredOnly) params.append('featured', 'true');
       params.append('sortBy', sortBy);
       params.append('sortOrder', sortOrder);
-      params.append('limit', '40'); // Load ample items
+      params.append('limit', '12'); // Display 12 items per page
+      params.append('page', page.toString());
 
       const res = await fetch(`${API_URL}/api/products?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch products');
       const json = await res.json();
       setProductsList(json.data || []);
+      setTotalPages(json.meta?.totalPages || 1);
       setError(null);
     } catch (err) {
       console.error(err);
@@ -106,7 +112,9 @@ function ProductsContent() {
       } else {
         filtered = filtered.sort((a, b) => b.id - a.id);
       }
-      setProductsList(filtered);
+      setTotalPages(Math.ceil(filtered.length / 12) || 1);
+      const paginated = filtered.slice((page - 1) * 12, page * 12);
+      setProductsList(paginated);
     } finally {
       setLoading(false);
     }
@@ -114,7 +122,7 @@ function ProductsContent() {
 
   useEffect(() => {
     fetchProducts();
-  }, [selectedCategory, search, minPrice, maxPrice, featuredOnly, sortBy, sortOrder]);
+  }, [selectedCategory, search, minPrice, maxPrice, featuredOnly, sortBy, sortOrder, page]);
 
   const clearFilters = () => {
     setSearch('');
@@ -124,6 +132,7 @@ function ProductsContent() {
     setFeaturedOnly(false);
     setSortBy('createdAt');
     setSortOrder('desc');
+    setPage(1);
     router.push('/products');
   };
 
@@ -186,7 +195,7 @@ function ProductsContent() {
                 type="text"
                 placeholder="Search HP, SSD, PS5..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                 className="w-full bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-4 py-2.5 pl-10 text-sm"
               />
               <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
@@ -200,7 +209,7 @@ function ProductsContent() {
               {displayCategories.map((cat) => (
                 <button
                   key={cat.slug}
-                  onClick={() => setSelectedCategory(cat.slug)}
+                  onClick={() => { setSelectedCategory(cat.slug); setPage(1); }}
                   className={`text-left text-sm px-3 py-2 rounded-xl transition-all duration-200 ${
                     selectedCategory === cat.slug
                       ? 'bg-primary text-primary-foreground font-bold'
@@ -221,14 +230,14 @@ function ProductsContent() {
                 type="number"
                 placeholder="Min ₦"
                 value={minPrice}
-                onChange={(e) => setMinPrice(e.target.value)}
+                onChange={(e) => { setMinPrice(e.target.value); setPage(1); }}
                 className="bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-3 py-2 text-xs"
               />
               <input
                 type="number"
                 placeholder="Max ₦"
                 value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
+                onChange={(e) => { setMaxPrice(e.target.value); setPage(1); }}
                 className="bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-3 py-2 text-xs"
               />
             </div>
@@ -239,7 +248,7 @@ function ProductsContent() {
             <label className="text-xs font-bold text-muted-foreground uppercase">Sort By</label>
             <div className="flex flex-col gap-2">
               <button
-                onClick={() => { setSortBy('price'); setSortOrder('asc'); }}
+                onClick={() => { setSortBy('price'); setSortOrder('asc'); setPage(1); }}
                 className={`text-left text-xs px-3 py-2 rounded-lg border ${
                   sortBy === 'price' && sortOrder === 'asc'
                     ? 'border-primary text-primary font-bold bg-primary/5'
@@ -249,7 +258,7 @@ function ProductsContent() {
                 Price: Low to High
               </button>
               <button
-                onClick={() => { setSortBy('price'); setSortOrder('desc'); }}
+                onClick={() => { setSortBy('price'); setSortOrder('desc'); setPage(1); }}
                 className={`text-left text-xs px-3 py-2 rounded-lg border ${
                   sortBy === 'price' && sortOrder === 'desc'
                     ? 'border-primary text-primary font-bold bg-primary/5'
@@ -259,7 +268,7 @@ function ProductsContent() {
                 Price: High to Low
               </button>
               <button
-                onClick={() => { setSortBy('createdAt'); setSortOrder('desc'); }}
+                onClick={() => { setSortBy('createdAt'); setSortOrder('desc'); setPage(1); }}
                 className={`text-left text-xs px-3 py-2 rounded-lg border ${
                   sortBy === 'createdAt'
                     ? 'border-primary text-primary font-bold bg-primary/5'
@@ -273,7 +282,7 @@ function ProductsContent() {
         </aside>
 
         {/* Right Side: Product Grid */}
-        <main className="lg:col-span-3 space-y-6">
+        <main id="products-scroll-container" className="lg:col-span-3 space-y-6 overflow-y-auto max-h-[75vh] pr-2 scroll-smooth pb-10">
           {/* Error Message */}
           {error && (
             <div className="p-4 bg-amber-950/20 border border-amber-800/40 rounded-2xl text-amber-200 text-sm flex items-center gap-2">
@@ -298,10 +307,41 @@ function ProductsContent() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {productsList.map((prod) => (
-                <ProductCard key={prod.id} product={prod} />
-              ))}
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {productsList.map((prod) => (
+                  <ProductCard key={prod.id} product={prod} />
+                ))}
+              </div>
+              
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-4">
+                  <button
+                    onClick={() => { 
+                      setPage(Math.max(1, page - 1)); 
+                      document.getElementById('products-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' }); 
+                    }}
+                    disabled={page === 1}
+                    className="px-4 py-2 bg-card border border-border/60 rounded-xl disabled:opacity-50 hover:bg-muted transition-colors font-bold text-sm"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm font-bold text-muted-foreground mx-4">
+                    Page {page} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => { 
+                      setPage(Math.min(totalPages, page + 1)); 
+                      document.getElementById('products-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' }); 
+                    }}
+                    disabled={page === totalPages}
+                    className="px-4 py-2 bg-card border border-border/60 rounded-xl disabled:opacity-50 hover:bg-muted transition-colors font-bold text-sm"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </main>

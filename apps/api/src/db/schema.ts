@@ -97,7 +97,7 @@ export const products = pgTable('products', {
   price: numeric('price', { precision: 12, scale: 2 }).notNull(),
   comparePrice: numeric('compare_price', { precision: 12, scale: 2 }),
   cost: numeric('cost', { precision: 12, scale: 2 }),
-  sku: varchar('sku', { length: 100 }),
+  sku: varchar('sku', { length: 100 }).unique(),
   stock: integer('stock').default(0).notNull(),
   lowStockThreshold: integer('low_stock_threshold').default(5),
   categoryId: integer('category_id').references(() => categories.id),
