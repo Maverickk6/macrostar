@@ -87,7 +87,7 @@ export default function WishlistPage() {
   }
 
   // Calculate total value of wishlist
-  const totalValue = items.reduce((sum, item) => sum + parseFloat(item.price || 0), 0);
+  const totalValue = items.reduce((sum, item) => sum + parseFloat(item.price || '0'), 0);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -116,11 +116,11 @@ export default function WishlistPage() {
         {items.map((item) => {
           const imgUrl = getProductImageUrl(item.image, item.name, API_URL);
 
-          const hasDiscount = item.comparePrice && parseFloat(item.comparePrice) > parseFloat(item.price);
+          const hasDiscount = item.comparePrice && parseFloat(item.comparePrice || '0') > parseFloat(item.price || '0');
           const discountPercent = hasDiscount
             ? Math.round(
-                ((parseFloat(item.comparePrice!) - parseFloat(item.price)) /
-                  parseFloat(item.comparePrice!)) *
+                ((parseFloat(item.comparePrice || '0') - parseFloat(item.price || '0')) /
+                  parseFloat(item.comparePrice || '0')) *
                   100
               )
             : 0;
