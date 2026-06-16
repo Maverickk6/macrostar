@@ -174,7 +174,7 @@ export const useCart = create<CartState>()(
 
             // Add or update items from local cart
             for (const item of items) {
-              const existingItem = serverItemMap.get(item.id);
+              const existingItem = serverItemMap.get(item.id) as any;
               if (existingItem) {
                 // Update quantity if item exists
                 await fetch(`${API_URL}/api/cart/${item.id}`, {
@@ -184,7 +184,7 @@ export const useCart = create<CartState>()(
                     Authorization: `Bearer ${token}`,
                   },
                   body: JSON.stringify({ 
-                    quantity: item.quantity + existingItem.quantity 
+                    quantity: item.quantity + (existingItem.quantity || 0)
                   }),
                 });
               } else {
