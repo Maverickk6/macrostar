@@ -35,12 +35,12 @@ export default function AccountPage() {
     if (mounted && customer) {
       setName(customer.name || '');
       setPhone(customer.phone || '');
-      setAddress(customer.address || {
-        street: '',
-        city: '',
-        state: '',
-        country: 'Nigeria',
-        zip: '',
+      setAddress({
+        street: customer.address?.street || '',
+        city: customer.address?.city || '',
+        state: customer.address?.state || '',
+        country: customer.address?.country || 'Nigeria',
+        zip: customer.address?.zip || '',
       });
     }
   }, [mounted, customer]);
@@ -81,12 +81,12 @@ export default function AccountPage() {
   const handleCancelEdit = () => {
     setName(customer.name || '');
     setPhone(customer.phone || '');
-    setAddress(customer.address || {
-      street: '',
-      city: '',
-      state: '',
-      country: 'Nigeria',
-      zip: '',
+    setAddress({
+      street: customer.address?.street || '',
+      city: customer.address?.city || '',
+      state: customer.address?.state || '',
+      country: customer.address?.country || 'Nigeria',
+      zip: customer.address?.zip || '',
     });
     setIsEditing(false);
   };
