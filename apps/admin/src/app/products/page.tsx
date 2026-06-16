@@ -48,6 +48,11 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(50);
+  const [totalCount, setTotalCount] = useState(0);
+
   // Search & Filters
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -96,7 +101,7 @@ export default function AdminProductsPage() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/products?status=all&limit=100000`);
+      const res = await fetch(`${API_URL}/api/products?status=all&limit=${pageSize}&page=${currentPage}`);
       const json = await res.json();
 
       const catRes = await fetch(`${API_URL}/api/categories/flat`);
@@ -104,6 +109,7 @@ export default function AdminProductsPage() {
 
       if (res.ok) {
         setProducts(json.data || []);
+        setTotalCount(json.total || 0);
         setCategories(catJson.data || []);
         setError(null);
       } else {
@@ -125,6 +131,7 @@ export default function AdminProductsPage() {
         { id: 9, name: 'Windows 11 Pro Installation', slug: 'windows-11-pro-installation', price: '15000.00', comparePrice: null, stock: 999, brand: 'Microsoft', status: 'active', sku: 'MST-SW-001', images: [] },
         { id: 10, name: 'Laptop Repair Service', slug: 'laptop-repair-service', price: '10000.00', comparePrice: null, stock: 999, brand: null, status: 'active', sku: 'MST-REP-001', images: [] },
       ]);
+      setTotalCount(10);
     } finally {
       setLoading(false);
     }
@@ -132,7 +139,7 @@ export default function AdminProductsPage() {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [currentPage]);
 
   const handleEditClick = async (prod: Product) => {
     setEditingProduct(prod);
@@ -792,6 +799,34 @@ export default function AdminProductsPage() {
               </tbody>
             </table>
           </div>
+          
+          {/* Pagination Controls */}
+          {totalCount > pageSize && (
+            <div className="flex items-center justify-between mt-4 px-2">
+              <div className="text-xs text-muted-foreground">
+                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} products
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 bg-muted/40 hover:bg-muted/60 border border-border rounded-lg text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+                <span className="text-xs font-bold text-foreground">
+                  Page {currentPage} of {Math.ceil(totalCount / pageSize)}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalCount / pageSize)))}
+                  disabled={currentPage >= Math.ceil(totalCount / pageSize)}
+                  className="px-3 py-1.5 bg-muted/40 hover:bg-muted/60 border border-border rounded-lg text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

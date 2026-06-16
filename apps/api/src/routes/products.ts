@@ -9,12 +9,51 @@ const productsRouter = new Hono();
 // Helper function to generate SKU
 function generateSKU(name: string, brand?: string | null): string {
   const prefix = 'MST';
-  const code = brand 
+  const code = brand
     ? brand.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '')
     : name.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '');
   const codePart = code || 'GEN';
   const randomNum = Math.floor(Math.random() * 900) + 100; // 3-digit number (100-999)
   return `${prefix}-${codePart}-${randomNum}`;
+}
+
+// Helper function to check if SKU exists in DB
+async function skuExists(sku: string, excludeId?: number): Promise<boolean> {
+  const conditions = [eq(products.sku, sku)];
+  if (excludeId) {
+    conditions.push(sql`${products.id} != ${excludeId}`);
+  }
+  const [existing] = await db.select({ id: products.id }).from(products).where(and(...conditions)).limit(1);
+  return !!existing;
+}
+
+// Helper function to generate unique SKU with retry logic
+async function generateUniqueSKU(name: string, brand?: string | null, excludeId?: number, maxAttempts: number = 10): Promise<string> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const candidateSKU = generateSKU(name, brand);
+    const exists = await skuExists(candidateSKU, excludeId);
+    if (!exists) {
+      return candidateSKU;
+    }
+  }
+  throw new Error(`Failed to generate unique SKU after ${maxAttempts} attempts`);
+}
+
+// Helper function to validate SKUs in batch for bulk inserts
+async function validateSKUsInBatch(skus: string[]): Promise<{ valid: string[]; invalid: string[] }> {
+  const existingSKUs = await db.select({ sku: products.sku }).from(products).where(sql`${products.sku} = ANY(${skus})`);
+  const existingSet = new Set(existingSKUs.map(r => r.sku));
+  return {
+    valid: skus.filter(sku => !existingSet.has(sku)),
+    invalid: skus.filter(sku => existingSet.has(sku)),
+  };
+}
+
+// Helper function to generate slug and SKU for product
+async function createProductIdentifiers(name: string, brand?: string | null, providedSlug?: string, providedSku?: string): Promise<{ slug: string; sku: string }> {
+  const slug = providedSlug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const sku = providedSku || await generateUniqueSKU(name, brand);
+  return { slug, sku };
 }
 
 // GET /api/products — public list with filters
@@ -124,8 +163,7 @@ productsRouter.get('/:slug', async (c) => {
 productsRouter.post('/', authMiddleware, async (c) => {
   const body = await c.req.json();
 
-  const slug = body.slug || body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-  const sku = body.sku || generateSKU(body.name, body.brand);
+  const { slug, sku } = await createProductIdentifiers(body.name, body.brand, body.slug, body.sku);
 
   const [product] = await db.insert(products).values({
     ...body,
@@ -158,8 +196,14 @@ productsRouter.put('/:id', authMiddleware, async (c) => {
     });
   }
 
+  // Generate unique SKU if SKU is being changed and not provided
+  let sku = body.sku;
+  if (body.name && !body.sku && body.name !== existing.name) {
+    sku = await generateUniqueSKU(body.name, body.brand || existing.brand, id);
+  }
+
   const [updated] = await db.update(products)
-    .set({ ...body, updatedAt: new Date() })
+    .set({ ...body, sku, updatedAt: new Date() })
     .where(eq(products.id, id))
     .returning();
 
@@ -186,62 +230,111 @@ productsRouter.post('/bulk', authMiddleware, async (c) => {
     return c.json({ success: false, message: 'Products array is required' }, 400);
   }
 
-  const results = [];
-  const errors = [];
+  // Pre-generate SKUs for products that don't have them
+  const productsWithSKUs = await Promise.all(
+    productsData.map(async (productData: any) => ({
+      ...productData,
+      sku: productData.sku || await generateUniqueSKU(productData.name, productData.brand),
+    }))
+  );
 
-  for (let i = 0; i < productsData.length; i++) {
-    const productData = productsData[i];
-    try {
-      const slug = productData.slug || productData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      const sku = productData.sku || generateSKU(productData.name, productData.brand);
+  // Validate SKUs in batch to check for conflicts
+  const allSKUs = productsWithSKUs.map(p => p.sku).filter(Boolean);
+  const { invalid: conflictingSKUs } = await validateSKUsInBatch(allSKUs);
 
-      const [existing] = await db.select().from(products).where(eq(products.slug, slug));
-      
-      let product;
-      if (existing) {
-        const updateData: any = { updatedAt: new Date() };
-        if (productData.price > 0) updateData.price = productData.price;
-        if (productData.comparePrice !== null && productData.comparePrice !== undefined) updateData.comparePrice = productData.comparePrice;
-        if (productData.stock > 0) updateData.stock = productData.stock;
-        if (productData.brand) updateData.brand = productData.brand;
-        if (productData.sku) updateData.sku = productData.sku;
-        if (productData.description) updateData.description = productData.description;
-        if (productData.categoryId) updateData.categoryId = productData.categoryId;
-        if (productData.shortDescription) updateData.shortDescription = productData.shortDescription;
-        if (productData.status && productData.status !== 'active') updateData.status = productData.status;
-        if (productData.featured) updateData.featured = productData.featured;
-        if (productData.lowStockThreshold && productData.lowStockThreshold !== 5) updateData.lowStockThreshold = productData.lowStockThreshold;
-
-        if (Object.keys(updateData).length > 1) {
-          [product] = await db.update(products).set(updateData).where(eq(products.id, existing.id)).returning();
-        } else {
-          product = existing;
-        }
-      } else {
-        [product] = await db.insert(products).values({
+  // Regenerate SKUs for any conflicts
+  const finalProducts = await Promise.all(
+    productsWithSKUs.map(async (productData: any) => {
+      if (conflictingSKUs.includes(productData.sku)) {
+        return {
           ...productData,
-          slug,
-          sku,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }).returning();
+          sku: await generateUniqueSKU(productData.name, productData.brand),
+        };
       }
+      return productData;
+    })
+  );
 
-      results.push({ success: true, data: product, row: i + 1 });
-    } catch (err) {
-      console.error(`Error inserting product at row ${i + 1}:`, err);
-      errors.push({ row: i + 1, error: 'Failed to insert product', data: productData });
+  let results: any[] = [];
+  const errors: any[] = [];
+
+  try {
+    await db.transaction(async (tx) => {
+      for (let i = 0; i < finalProducts.length; i++) {
+        const productData = finalProducts[i];
+        try {
+          const { slug } = await createProductIdentifiers(productData.name, productData.brand, productData.slug, productData.sku);
+
+          const [existing] = await tx.select().from(products).where(eq(products.slug, slug));
+          
+          let product;
+          if (existing) {
+            const updateData: any = { updatedAt: new Date() };
+            if (productData.price > 0) updateData.price = productData.price;
+            if (productData.comparePrice !== null && productData.comparePrice !== undefined) updateData.comparePrice = productData.comparePrice;
+            if (productData.stock > 0) updateData.stock = productData.stock;
+            if (productData.brand) updateData.brand = productData.brand;
+            if (productData.sku) updateData.sku = productData.sku;
+            if (productData.description) updateData.description = productData.description;
+            if (productData.categoryId) updateData.categoryId = productData.categoryId;
+            if (productData.shortDescription) updateData.shortDescription = productData.shortDescription;
+            if (productData.status && productData.status !== 'active') updateData.status = productData.status;
+            if (productData.featured) updateData.featured = productData.featured;
+            if (productData.lowStockThreshold && productData.lowStockThreshold !== 5) updateData.lowStockThreshold = productData.lowStockThreshold;
+
+            if (Object.keys(updateData).length > 1) {
+              [product] = await tx.update(products).set(updateData).where(eq(products.id, existing.id)).returning();
+            } else {
+              product = existing;
+            }
+          } else {
+            [product] = await tx.insert(products).values({
+              ...productData,
+              slug,
+              sku: productData.sku,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            }).returning();
+          }
+
+          results.push({ success: true, data: product, row: i + 1 });
+        } catch (rowErr: any) {
+          console.error(`Error processing product at row ${i + 1}:`, rowErr);
+          errors.push({
+            row: i + 1,
+            error: rowErr.message || String(rowErr),
+            data: productData,
+          });
+        }
+      }
+    });
+
+    if (errors.length > 0) {
+      return c.json({
+        success: false,
+        message: `Bulk upload completed with errors: ${results.length} successful, ${errors.length} failed`,
+        data: {
+          successful: results,
+          failed: errors,
+        },
+      }, 207); // Multi-status
     }
-  }
 
-  return c.json({
-    success: true,
-    message: `Bulk upload completed: ${results.length} successful, ${errors.length} failed`,
-    data: {
-      successful: results,
-      failed: errors,
-    },
-  });
+    return c.json({
+      success: true,
+      message: `Bulk upload completed: ${results.length} successful`,
+      data: {
+        successful: results,
+      },
+    });
+  } catch (err: any) {
+    console.error('Bulk upload transaction failed:', err);
+    return c.json({
+      success: false,
+      message: 'Bulk upload failed due to a critical error. All changes have been rolled back.',
+      error: err.message || String(err),
+    }, 500);
+  }
 });
 
 export default productsRouter;
