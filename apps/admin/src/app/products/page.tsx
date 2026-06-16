@@ -109,7 +109,7 @@ export default function AdminProductsPage() {
 
       if (res.ok) {
         setProducts(json.data || []);
-        setTotalCount(json.total || 0);
+        setTotalCount(json.meta.total || 0);
         setCategories(catJson.data || []);
         setError(null);
       } else {

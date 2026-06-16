@@ -238,13 +238,39 @@ productsRouter.post('/bulk', authMiddleware, async (c) => {
     }))
   );
 
-  // Validate SKUs in batch to check for conflicts
-  const allSKUs = productsWithSKUs.map(p => p.sku).filter(Boolean);
+  // Detect and resolve intra-batch SKU duplicates
+  const skuMap = new Map<string, number[]>();
+  productsWithSKUs.forEach((product, index) => {
+    if (product.sku) {
+      if (!skuMap.has(product.sku)) {
+        skuMap.set(product.sku, []);
+      }
+      skuMap.get(product.sku)!.push(index);
+    }
+  });
+
+  // Regenerate SKUs for duplicates within the batch
+  const productsWithoutIntraDuplicates = await Promise.all(
+    productsWithSKUs.map(async (productData: any, index: number) => {
+      const duplicateIndices = skuMap.get(productData.sku);
+      if (duplicateIndices && duplicateIndices.length > 1 && duplicateIndices[0] !== index) {
+        // This is a duplicate (not the first occurrence), regenerate SKU
+        return {
+          ...productData,
+          sku: await generateUniqueSKU(productData.name, productData.brand),
+        };
+      }
+      return productData;
+    })
+  );
+
+  // Validate SKUs in batch to check for conflicts with database
+  const allSKUs = productsWithoutIntraDuplicates.map(p => p.sku).filter(Boolean);
   const { invalid: conflictingSKUs } = await validateSKUsInBatch(allSKUs);
 
-  // Regenerate SKUs for any conflicts
+  // Regenerate SKUs for any conflicts with database
   const finalProducts = await Promise.all(
-    productsWithSKUs.map(async (productData: any) => {
+    productsWithoutIntraDuplicates.map(async (productData: any) => {
       if (conflictingSKUs.includes(productData.sku)) {
         return {
           ...productData,
@@ -270,17 +296,17 @@ productsRouter.post('/bulk', authMiddleware, async (c) => {
           let product;
           if (existing) {
             const updateData: any = { updatedAt: new Date() };
-            if (productData.price > 0) updateData.price = productData.price;
+            if (productData.price !== null && productData.price !== undefined) updateData.price = productData.price;
             if (productData.comparePrice !== null && productData.comparePrice !== undefined) updateData.comparePrice = productData.comparePrice;
-            if (productData.stock > 0) updateData.stock = productData.stock;
+            if (productData.stock !== null && productData.stock !== undefined) updateData.stock = productData.stock;
             if (productData.brand) updateData.brand = productData.brand;
             if (productData.sku) updateData.sku = productData.sku;
             if (productData.description) updateData.description = productData.description;
             if (productData.categoryId) updateData.categoryId = productData.categoryId;
             if (productData.shortDescription) updateData.shortDescription = productData.shortDescription;
-            if (productData.status && productData.status !== 'active') updateData.status = productData.status;
+            if (productData.status !== undefined) updateData.status = productData.status;
             if (productData.featured) updateData.featured = productData.featured;
-            if (productData.lowStockThreshold && productData.lowStockThreshold !== 5) updateData.lowStockThreshold = productData.lowStockThreshold;
+            if (productData.lowStockThreshold !== undefined && typeof productData.lowStockThreshold === 'number') updateData.lowStockThreshold = productData.lowStockThreshold;
 
             if (Object.keys(updateData).length > 1) {
               [product] = await tx.update(products).set(updateData).where(eq(products.id, existing.id)).returning();
