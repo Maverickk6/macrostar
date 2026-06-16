@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/store/useAuth';
@@ -98,10 +98,11 @@ export default function AdminProductsPage() {
     }
   }, [name, brand, editingProduct, skuManuallyEdited]);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/products?status=all&limit=${pageSize}&page=${currentPage}`);
+      const searchParam = search ? `&search=${encodeURIComponent(search)}` : '';
+      const res = await fetch(`${API_URL}/api/products?status=all&limit=${pageSize}&page=${currentPage}${searchParam}`);
       const json = await res.json();
 
       const catRes = await fetch(`${API_URL}/api/categories/flat`);
@@ -135,11 +136,11 @@ export default function AdminProductsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [search, currentPage, pageSize]);
 
   useEffect(() => {
     fetchProducts();
-  }, [currentPage]);
+  }, [fetchProducts]);
 
   const handleEditClick = async (prod: Product) => {
     setEditingProduct(prod);
@@ -339,8 +340,7 @@ export default function AdminProductsPage() {
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      const data = event.target?.result;
-      const workbook = XLSX.read(data, { type: 'binary' });
+      const workbook = XLSX.read(new Uint8Array(event.target?.result as ArrayBuffer), { type: 'array' });
       const sheetName = workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(sheet);
@@ -426,7 +426,7 @@ export default function AdminProductsPage() {
       setParsedProducts(mappedProducts);
       toast.success(`Parsed ${mappedProducts.length} products from Excel file`);
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   };
 
   const handleBulkUpload = async () => {
@@ -452,9 +452,6 @@ export default function AdminProductsPage() {
       setBulkUploadResults(json.data);
       toast.success(json.message);
       fetchProducts();
-      setShowBulkUpload(false);
-      setParsedProducts([]);
-      setBulkUploadResults(null);
     } catch (err) {
       console.error(err);
       toast.error('Failed to upload products');
@@ -487,13 +484,6 @@ export default function AdminProductsPage() {
     XLSX.writeFile(workbook, 'product_upload_template.xlsx');
   };
 
-  const filteredProducts = products.filter((p) => {
-    const matchesSearch =
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.brand?.toLowerCase().includes(search.toLowerCase()) ||
-      p.sku?.toLowerCase().includes(search.toLowerCase());
-    return matchesSearch;
-  });
 
   return (
     <div className="space-y-8 pb-8">
@@ -733,7 +723,10 @@ export default function AdminProductsPage() {
             type="text"
             placeholder="Search catalog by name, brand, SKU..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full bg-muted/40 border border-border focus:border-primary focus:outline-none rounded-xl px-4 py-2.5 pl-10"
           />
           <Search className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-muted-foreground" />
@@ -746,7 +739,7 @@ export default function AdminProductsPage() {
           <RefreshCw className="h-8 w-8 text-primary animate-spin" />
           <p className="text-sm text-muted-foreground">Retrieving catalog item status...</p>
         </div>
-      ) : filteredProducts.length === 0 ? (
+      ) : products.length === 0 ? (
         <div className="text-center py-20 bg-card border border-border/40 rounded-2xl">
           <p className="text-sm text-muted-foreground">No matching products in catalog.</p>
         </div>
@@ -765,7 +758,7 @@ export default function AdminProductsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
-                {filteredProducts.map((prod) => (
+                {products.map((prod) => (
                   <tr key={prod.id} className="hover:bg-muted/10 transition-colors">
                     <td className="p-4 font-mono text-xs font-bold text-muted-foreground">{prod.sku || 'N/A'}</td>
                     <td className="p-4">
@@ -901,9 +894,7 @@ export default function AdminProductsPage() {
                                 type="text"
                                 value={product.name}
                                 onChange={(e) => {
-                                  const updated = [...parsedProducts];
-                                  updated[index].name = e.target.value;
-                                  setParsedProducts(updated);
+                                  setParsedProducts(parsedProducts.map((p, i) => i === index ? { ...p, name: e.target.value } : p));
                                 }}
                                 className="w-full bg-muted/40 border border-border rounded px-2 py-1"
                               />
@@ -913,9 +904,7 @@ export default function AdminProductsPage() {
                                 type="number"
                                 value={product.price}
                                 onChange={(e) => {
-                                  const updated = [...parsedProducts];
-                                  updated[index].price = parseFloat(e.target.value) || 0;
-                                  setParsedProducts(updated);
+                                  setParsedProducts(parsedProducts.map((p, i) => i === index ? { ...p, price: parseFloat(e.target.value) || 0 } : p));
                                 }}
                                 className="w-20 bg-muted/40 border border-border rounded px-2 py-1"
                               />
@@ -925,9 +914,7 @@ export default function AdminProductsPage() {
                                 type="number"
                                 value={product.stock}
                                 onChange={(e) => {
-                                  const updated = [...parsedProducts];
-                                  updated[index].stock = parseInt(e.target.value) || 0;
-                                  setParsedProducts(updated);
+                                  setParsedProducts(parsedProducts.map((p, i) => i === index ? { ...p, stock: parseInt(e.target.value) || 0 } : p));
                                 }}
                                 className="w-16 bg-muted/40 border border-border rounded px-2 py-1"
                               />
@@ -937,9 +924,7 @@ export default function AdminProductsPage() {
                                 type="text"
                                 value={product.brand || ''}
                                 onChange={(e) => {
-                                  const updated = [...parsedProducts];
-                                  updated[index].brand = e.target.value || null;
-                                  setParsedProducts(updated);
+                                  setParsedProducts(parsedProducts.map((p, i) => i === index ? { ...p, brand: e.target.value || null } : p));
                                 }}
                                 className="w-24 bg-muted/40 border border-border rounded px-2 py-1"
                               />
@@ -949,9 +934,7 @@ export default function AdminProductsPage() {
                                 type="text"
                                 value={product.sku || ''}
                                 onChange={(e) => {
-                                  const updated = [...parsedProducts];
-                                  updated[index].sku = e.target.value || null;
-                                  setParsedProducts(updated);
+                                  setParsedProducts(parsedProducts.map((p, i) => i === index ? { ...p, sku: e.target.value || null } : p));
                                 }}
                                 className="w-32 bg-muted/40 border border-border rounded px-2 py-1 font-mono"
                                 placeholder="Auto-generated"
@@ -962,9 +945,7 @@ export default function AdminProductsPage() {
                                 type="text"
                                 value={product.description || ''}
                                 onChange={(e) => {
-                                  const updated = [...parsedProducts];
-                                  updated[index].description = e.target.value;
-                                  setParsedProducts(updated);
+                                  setParsedProducts(parsedProducts.map((p, i) => i === index ? { ...p, description: e.target.value } : p));
                                 }}
                                 className="w-48 bg-muted/40 border border-border rounded px-2 py-1"
                                 placeholder="Description"

@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { eq, like, ilike, and, gte, lte, desc, asc, or, sql } from 'drizzle-orm';
+import { eq, like, ilike, and, gte, lte, desc, asc, or, sql, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { products, categories, inventoryLogs } from '../db/schema.js';
 import { authMiddleware } from '../middleware/auth.js';
@@ -13,7 +13,7 @@ function generateSKU(name: string, brand?: string | null): string {
     ? brand.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '')
     : name.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '');
   const codePart = code || 'GEN';
-  const randomNum = Math.floor(Math.random() * 900) + 100; // 3-digit number (100-999)
+  const randomNum = Math.floor(Math.random() * 900000) + 100000; // 6-digit number (100000-999999)
   return `${prefix}-${codePart}-${randomNum}`;
 }
 
@@ -28,7 +28,7 @@ async function skuExists(sku: string, excludeId?: number): Promise<boolean> {
 }
 
 // Helper function to generate unique SKU with retry logic
-async function generateUniqueSKU(name: string, brand?: string | null, excludeId?: number, maxAttempts: number = 10): Promise<string> {
+async function generateUniqueSKU(name: string, brand?: string | null, excludeId?: number, maxAttempts: number = 20): Promise<string> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const candidateSKU = generateSKU(name, brand);
     const exists = await skuExists(candidateSKU, excludeId);
@@ -41,7 +41,7 @@ async function generateUniqueSKU(name: string, brand?: string | null, excludeId?
 
 // Helper function to validate SKUs in batch for bulk inserts
 async function validateSKUsInBatch(skus: string[]): Promise<{ valid: string[]; invalid: string[] }> {
-  const existingSKUs = await db.select({ sku: products.sku }).from(products).where(sql`${products.sku} = ANY(${skus})`);
+  const existingSKUs = await db.select({ sku: products.sku }).from(products).where(inArray(products.sku, skus));
   const existingSet = new Set(existingSKUs.map(r => r.sku));
   return {
     valid: skus.filter(sku => !existingSet.has(sku)),
@@ -230,6 +230,11 @@ productsRouter.post('/bulk', authMiddleware, async (c) => {
     return c.json({ success: false, message: 'Products array is required' }, 400);
   }
 
+  // Guard: Reject batches exceeding safe maximum to prevent resource exhaustion
+  if (productsData.length > 500) {
+    return c.json({ success: false, message: 'Batch size cannot exceed 500 products' }, 400);
+  }
+
   // Pre-generate SKUs for products that don't have them
   const productsWithSKUs = await Promise.all(
     productsData.map(async (productData: any) => ({
@@ -288,6 +293,13 @@ productsRouter.post('/bulk', authMiddleware, async (c) => {
     await db.transaction(async (tx) => {
       for (let i = 0; i < finalProducts.length; i++) {
         const productData = finalProducts[i];
+        
+        // Validation: Check for required fields
+        if (!productData.name || productData.price == null) {
+          errors.push({ row: i + 1, error: 'Name and price are required fields', data: productData });
+          continue;
+        }
+        
         try {
           const { slug } = await createProductIdentifiers(productData.name, productData.brand, productData.slug, productData.sku);
 
@@ -296,8 +308,8 @@ productsRouter.post('/bulk', authMiddleware, async (c) => {
           let product;
           if (existing) {
             const updateData: any = { updatedAt: new Date() };
-            if (productData.price !== null && productData.price !== undefined) updateData.price = productData.price;
-            if (productData.comparePrice !== null && productData.comparePrice !== undefined) updateData.comparePrice = productData.comparePrice;
+            if (productData.price !== null && productData.price !== undefined) updateData.price = parseFloat(String(productData.price)).toFixed(2);
+            if (productData.comparePrice !== null && productData.comparePrice !== undefined) updateData.comparePrice = parseFloat(String(productData.comparePrice)).toFixed(2);
             if (productData.stock !== null && productData.stock !== undefined) updateData.stock = productData.stock;
             if (productData.brand) updateData.brand = productData.brand;
             if (productData.sku) updateData.sku = productData.sku;
@@ -318,6 +330,8 @@ productsRouter.post('/bulk', authMiddleware, async (c) => {
               ...productData,
               slug,
               sku: productData.sku,
+              price: productData.price != null ? parseFloat(String(productData.price)).toFixed(2) : undefined,
+              comparePrice: productData.comparePrice != null ? parseFloat(String(productData.comparePrice)).toFixed(2) : undefined,
               createdAt: new Date(),
               updatedAt: new Date(),
             }).returning();
