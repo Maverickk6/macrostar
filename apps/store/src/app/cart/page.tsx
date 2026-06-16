@@ -64,7 +64,7 @@ export default function CartPage() {
             <div className="flex justify-between items-center px-4">
               <span className="text-sm font-semibold text-muted-foreground">{items.length} items</span>
               <button
-                onClick={clearCart}
+                onClick={() => clearCart()}
                 className="text-xs font-bold text-red-500 hover:underline flex items-center gap-1"
               >
                 <Trash2 className="h-3.5 w-3.5" />
