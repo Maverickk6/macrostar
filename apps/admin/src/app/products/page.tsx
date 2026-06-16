@@ -435,6 +435,19 @@ export default function AdminProductsPage() {
       return;
     }
 
+    // Validate required fields for each product
+    for (let i = 0; i < parsedProducts.length; i++) {
+      const product = parsedProducts[i];
+      if (!product.name || product.name.trim() === '') {
+        toast.error(`Row ${i + 1}: Product name is required`);
+        return;
+      }
+      if (product.price == null || product.price === '') {
+        toast.error(`Row ${i + 1}: Product price is required`);
+        return;
+      }
+    }
+
     setBulkUploading(true);
     try {
       const res = await fetch(`${API_URL}/api/products/bulk`, {
@@ -894,7 +907,7 @@ export default function AdminProductsPage() {
                                 type="text"
                                 value={product.name}
                                 onChange={(e) => {
-                                  setParsedProducts(parsedProducts.map((p, i) => i === index ? { ...p, name: e.target.value } : p));
+                                  setParsedProducts(prev => prev.map((p, i) => i === index ? { ...p, name: e.target.value } : p));
                                 }}
                                 className="w-full bg-muted/40 border border-border rounded px-2 py-1"
                               />
@@ -904,7 +917,7 @@ export default function AdminProductsPage() {
                                 type="number"
                                 value={product.price}
                                 onChange={(e) => {
-                                  setParsedProducts(parsedProducts.map((p, i) => i === index ? { ...p, price: parseFloat(e.target.value) || 0 } : p));
+                                  setParsedProducts(prev => prev.map((p, i) => i === index ? { ...p, price: parseFloat(e.target.value) || 0 } : p));
                                 }}
                                 className="w-20 bg-muted/40 border border-border rounded px-2 py-1"
                               />
@@ -914,7 +927,7 @@ export default function AdminProductsPage() {
                                 type="number"
                                 value={product.stock}
                                 onChange={(e) => {
-                                  setParsedProducts(parsedProducts.map((p, i) => i === index ? { ...p, stock: parseInt(e.target.value) || 0 } : p));
+                                  setParsedProducts(prev => prev.map((p, i) => i === index ? { ...p, stock: parseInt(e.target.value) || 0 } : p));
                                 }}
                                 className="w-16 bg-muted/40 border border-border rounded px-2 py-1"
                               />
@@ -924,7 +937,7 @@ export default function AdminProductsPage() {
                                 type="text"
                                 value={product.brand || ''}
                                 onChange={(e) => {
-                                  setParsedProducts(parsedProducts.map((p, i) => i === index ? { ...p, brand: e.target.value || null } : p));
+                                  setParsedProducts(prev => prev.map((p, i) => i === index ? { ...p, brand: e.target.value || null } : p));
                                 }}
                                 className="w-24 bg-muted/40 border border-border rounded px-2 py-1"
                               />
@@ -934,7 +947,7 @@ export default function AdminProductsPage() {
                                 type="text"
                                 value={product.sku || ''}
                                 onChange={(e) => {
-                                  setParsedProducts(parsedProducts.map((p, i) => i === index ? { ...p, sku: e.target.value || null } : p));
+                                  setParsedProducts(prev => prev.map((p, i) => i === index ? { ...p, sku: e.target.value || null } : p));
                                 }}
                                 className="w-32 bg-muted/40 border border-border rounded px-2 py-1 font-mono"
                                 placeholder="Auto-generated"
@@ -945,7 +958,7 @@ export default function AdminProductsPage() {
                                 type="text"
                                 value={product.description || ''}
                                 onChange={(e) => {
-                                  setParsedProducts(parsedProducts.map((p, i) => i === index ? { ...p, description: e.target.value } : p));
+                                  setParsedProducts(prev => prev.map((p, i) => i === index ? { ...p, description: e.target.value } : p));
                                 }}
                                 className="w-48 bg-muted/40 border border-border rounded px-2 py-1"
                                 placeholder="Description"
