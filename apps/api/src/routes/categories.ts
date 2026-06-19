@@ -57,7 +57,7 @@ categoriesRouter.post('/', authMiddleware, async (c) => {
 
 // PUT /api/categories/:id — admin update
 categoriesRouter.put('/:id', authMiddleware, async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseInt(c.req.param('id') || '0');
   const body = await c.req.json();
 
   const [existing] = await db.select().from(categories).where(eq(categories.id, id));

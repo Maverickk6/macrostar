@@ -69,7 +69,7 @@ app.use(
         return origin;
       }
 
-      return false;
+      return undefined;
     },
     allowHeaders: ['Content-Type', 'Authorization'],
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

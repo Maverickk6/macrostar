@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { cartItems, products } from '../db/schema.js';
 import { authMiddleware, Env } from '../middleware/auth.js';
@@ -12,9 +12,9 @@ cart.use('*', authMiddleware);
 // GET /api/cart - Get customer's cart
 cart.get('/', async (c) => {
   try {
-    const payload = c.get('user') as { id: number; email: string; type: string };
+    const payload = c.get('user') as { id: number; email: string; role: string };
     
-    if (payload.type !== 'customer') {
+    if (payload.role !== 'customer') {
       return c.json({ success: false, message: 'Only customers can access cart' }, 403);
     }
 
@@ -57,9 +57,9 @@ cart.get('/', async (c) => {
 // POST /api/cart - Add item to cart
 cart.post('/', async (c) => {
   try {
-    const payload = c.get('user') as { id: number; email: string; type: string };
+    const payload = c.get('user') as { id: number; email: string; role: string };
     
-    if (payload.type !== 'customer') {
+    if (payload.role !== 'customer') {
       return c.json({ success: false, message: 'Only customers can access cart' }, 403);
     }
 
@@ -136,9 +136,9 @@ cart.post('/', async (c) => {
 // PUT /api/cart/:productId - Update cart item quantity
 cart.put('/:productId', async (c) => {
   try {
-    const payload = c.get('user') as { id: number; email: string; type: string };
+    const payload = c.get('user') as { id: number; email: string; role: string };
     
-    if (payload.type !== 'customer') {
+    if (payload.role !== 'customer') {
       return c.json({ success: false, message: 'Only customers can access cart' }, 403);
     }
 
@@ -193,9 +193,9 @@ cart.put('/:productId', async (c) => {
 // DELETE /api/cart/:productId - Remove item from cart
 cart.delete('/:productId', async (c) => {
   try {
-    const payload = c.get('user') as { id: number; email: string; type: string };
+    const payload = c.get('user') as { id: number; email: string; role: string };
     
-    if (payload.type !== 'customer') {
+    if (payload.role !== 'customer') {
       return c.json({ success: false, message: 'Only customers can access cart' }, 403);
     }
 
@@ -221,9 +221,9 @@ cart.delete('/:productId', async (c) => {
 // DELETE /api/cart - Clear entire cart
 cart.delete('/', async (c) => {
   try {
-    const payload = c.get('user') as { id: number; email: string; type: string };
+    const payload = c.get('user') as { id: number; email: string; role: string };
     
-    if (payload.type !== 'customer') {
+    if (payload.role !== 'customer') {
       return c.json({ success: false, message: 'Only customers can access cart' }, 403);
     }
 
