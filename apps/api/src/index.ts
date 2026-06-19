@@ -17,11 +17,9 @@ if (existsSync(envPath)) {
   }
 }
 
-import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { serveStatic } from '@hono/node-server/serve-static';
 
 import authRouter from './routes/auth.js';
 import customerAuthRouter from './routes/customer-auth.js';
@@ -54,12 +52,21 @@ app.use('*', generalRateLimit);
 app.use(
   '*',
   cors({
-    origin: [
-      'http://localhost:3000', // store
-      'http://localhost:3001', // admin
-      process.env.STORE_URL || '',
-      process.env.ADMIN_URL || '',
-    ].filter(Boolean),
+    origin: function (origin) {
+      // Allow requests with no origin (like mobile apps, curl, etc.)
+      if (!origin) return true;
+
+      // Allow localhost for development
+      if (origin.includes('localhost')) return true;
+
+      // Allow production URLs from environment variables
+      const allowedOrigins = [
+        process.env.STORE_URL,
+        process.env.ADMIN_URL,
+      ].filter(Boolean);
+
+      return allowedOrigins.some(allowed => origin === allowed);
+    },
     allowHeaders: ['Content-Type', 'Authorization'],
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
@@ -67,7 +74,9 @@ app.use(
 );
 
 // ─── Static file serving (uploaded images) ───────────────────────────────────
-app.use('/uploads/*', serveStatic({ root: './' }));
+// Note: Static file serving disabled for Vercel serverless deployment
+// Images should be served from Cloudinary or similar CDN
+// app.use('/uploads/*', serveStatic({ root: './' }));
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/', (c) => c.json({
@@ -106,14 +115,5 @@ app.onError((err, c) => {
   return c.json({ success: false, message: 'Internal server error' }, 500);
 });
 
-// ─── Start Server ─────────────────────────────────────────────────────────────
-const PORT = parseInt(process.env.PORT || '4000');
-
-serve({ fetch: app.fetch, port: PORT }, () => {
-  console.log(`\n🚀 MacroStar API running on http://localhost:${PORT}`);
-  console.log(`   Store:  http://localhost:3000`);
-  console.log(`   Admin:  http://localhost:3001`);
-  console.log(`   Health: http://localhost:${PORT}/\n`);
-});
-
+// ─── Export for Vercel ─────────────────────────────────────────────────────────
 export default app;
