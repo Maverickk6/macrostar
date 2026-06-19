@@ -73,7 +73,7 @@ categoriesRouter.put('/:id', authMiddleware, async (c) => {
 
 // DELETE /api/categories/:id — admin delete
 categoriesRouter.delete('/:id', authMiddleware, async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseInt(c.req.param('id') || '0');
 
   const [existing] = await db.select().from(categories).where(eq(categories.id, id));
   if (!existing) return c.json({ success: false, message: 'Category not found' }, 404);

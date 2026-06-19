@@ -54,7 +54,7 @@ app.use(
   cors({
     origin: function (origin) {
       // Allow requests with no origin (like mobile apps, curl, etc.)
-      if (!origin) return true;
+      if (!origin) return origin;
 
       // Allow localhost for development
       if (origin.includes('localhost')) return origin;

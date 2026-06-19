@@ -39,7 +39,7 @@ couponsRouter.post('/validate', async (c) => {
     }
 
     // Check max uses
-    if (couponData.maxUses && couponData.usedCount >= couponData.maxUses) {
+    if (couponData.maxUses && (couponData.usedCount || 0) >= couponData.maxUses) {
       return c.json({ error: 'This coupon has reached its usage limit' }, 400);
     }
 
@@ -169,7 +169,7 @@ couponsRouter.post('/', async (c) => {
         code: code.toUpperCase(),
         description,
         discountType,
-        discountValue: parseFloat(discountValue),
+        discountValue: parseFloat(discountValue).toString(),
         maxUses,
         minPurchaseAmount: minPurchaseAmount ? parseFloat(minPurchaseAmount) : null,
         applicableCategories: applicableCategories || [],
@@ -213,7 +213,7 @@ couponsRouter.put('/:id', async (c) => {
         code: code ? code.toUpperCase() : undefined,
         description,
         discountType,
-        discountValue: discountValue ? parseFloat(discountValue) : undefined,
+        discountValue: discountValue ? parseFloat(discountValue).toString() : undefined,
         maxUses,
         minPurchaseAmount: minPurchaseAmount ? parseFloat(minPurchaseAmount) : null,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
