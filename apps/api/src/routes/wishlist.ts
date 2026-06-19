@@ -12,9 +12,9 @@ wishlist.use('*', authMiddleware);
 // GET /api/wishlist - Get customer's wishlist
 wishlist.get('/', async (c) => {
   try {
-    const payload = c.get('user') as { id: number; email: string; type: string };
+    const payload = c.get('user') as { id: number; email: string; role: string };
     
-    if (payload.type !== 'customer') {
+    if (payload.role !== 'customer') {
       return c.json({ success: false, message: 'Only customers can access wishlist' }, 403);
     }
 
@@ -55,9 +55,9 @@ wishlist.get('/', async (c) => {
 // POST /api/wishlist - Add item to wishlist
 wishlist.post('/', async (c) => {
   try {
-    const payload = c.get('user') as { id: number; email: string; type: string };
+    const payload = c.get('user') as { id: number; email: string; role: string };
     
-    if (payload.type !== 'customer') {
+    if (payload.role !== 'customer') {
       return c.json({ success: false, message: 'Only customers can access wishlist' }, 403);
     }
 
@@ -95,9 +95,9 @@ wishlist.post('/', async (c) => {
 // DELETE /api/wishlist/:productId - Remove item from wishlist
 wishlist.delete('/:productId', async (c) => {
   try {
-    const payload = c.get('user') as { id: number; email: string; type: string };
+    const payload = c.get('user') as { id: number; email: string; role: string };
     
-    if (payload.type !== 'customer') {
+    if (payload.role !== 'customer') {
       return c.json({ success: false, message: 'Only customers can access wishlist' }, 403);
     }
 
@@ -123,9 +123,9 @@ wishlist.delete('/:productId', async (c) => {
 // DELETE /api/wishlist - Clear entire wishlist
 wishlist.delete('/', async (c) => {
   try {
-    const payload = c.get('user') as { id: number; email: string; type: string };
+    const payload = c.get('user') as { id: number; email: string; role: string };
     
-    if (payload.type !== 'customer') {
+    if (payload.role !== 'customer') {
       return c.json({ success: false, message: 'Only customers can access wishlist' }, 403);
     }
 

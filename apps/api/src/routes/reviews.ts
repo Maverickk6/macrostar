@@ -130,7 +130,7 @@ reviewsRouter.get('/product/:productId/stats', async (c) => {
         .update(products)
         .set({
           reviewCount: totalReviews,
-          averageRating: parseFloat(averageRating as any),
+          averageRating: parseFloat(averageRating as any).toString(),
         })
         .where(eq(products.id, productId));
     }
@@ -208,7 +208,7 @@ reviewsRouter.put('/:id/approve', async (c) => {
       .update(products)
       .set({
         reviewCount: productReviews.length,
-        averageRating,
+        averageRating: averageRating.toString(),
       })
       .where(eq(products.id, productId));
 
@@ -262,7 +262,7 @@ reviewsRouter.delete('/:id', async (c) => {
       .update(products)
       .set({
         reviewCount: productReviews.length,
-        averageRating,
+        averageRating: averageRating.toString(),
       })
       .where(eq(products.id, productId));
 

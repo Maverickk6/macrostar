@@ -116,8 +116,8 @@ shippingRouter.post('/zones', async (c) => {
         state,
         city,
         region,
-        baseRate: parseFloat(baseRate),
-        perKgRate: perKgRate ? parseFloat(perKgRate) : 0,
+        baseRate: parseFloat(baseRate).toString(),
+        perKgRate: perKgRate ? parseFloat(perKgRate).toString() : '0',
         estimatedDays: estimatedDays || 3,
         isActive: true,
       })
@@ -149,8 +149,8 @@ shippingRouter.put('/zones/:id', async (c) => {
         state,
         city,
         region,
-        baseRate: baseRate !== undefined && baseRate !== '' && !isNaN(parseFloat(baseRate)) ? parseFloat(baseRate) : undefined,
-        perKgRate: perKgRate !== undefined && perKgRate !== '' && !isNaN(parseFloat(perKgRate)) ? parseFloat(perKgRate) : undefined,
+        baseRate: baseRate !== undefined && baseRate !== '' && !isNaN(parseFloat(baseRate)) ? parseFloat(baseRate).toString() : undefined,
+        perKgRate: perKgRate !== undefined && perKgRate !== '' && !isNaN(parseFloat(perKgRate)) ? parseFloat(perKgRate).toString() : null,
         estimatedDays,
         isActive,
       })

@@ -12,7 +12,7 @@ settingsRouter.use('*', authMiddleware);
 // GET /api/settings - Get all settings
 settingsRouter.get('/', async (c) => {
   try {
-    let allSettings = [];
+    let allSettings: any[] = [];
     try {
       allSettings = await db.select().from(settingsTable);
     } catch (err: any) {
