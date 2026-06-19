@@ -38,7 +38,7 @@ inventoryRouter.get('/', authMiddleware, async (c) => {
 
 // PUT /api/inventory/:productId — admin: adjust stock
 inventoryRouter.put('/:productId', authMiddleware, async (c) => {
-  const productId = parseInt(c.req.param('productId'));
+  const productId = parseInt(c.req.param('productId') || '0');
   const { change, reason, reference } = await c.req.json();
 
   const [product] = await db.select().from(products).where(eq(products.id, productId));
@@ -69,7 +69,7 @@ inventoryRouter.put('/:productId', authMiddleware, async (c) => {
 
 // GET /api/inventory/:productId/logs — admin: stock history for a product
 inventoryRouter.get('/:productId/logs', authMiddleware, async (c) => {
-  const productId = parseInt(c.req.param('productId'));
+  const productId = parseInt(c.req.param('productId') || '0');
   const logs = await db
     .select()
     .from(inventoryLogs)

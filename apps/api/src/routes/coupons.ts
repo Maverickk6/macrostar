@@ -171,7 +171,7 @@ couponsRouter.post('/', async (c) => {
         discountType,
         discountValue: parseFloat(discountValue).toString(),
         maxUses,
-        minPurchaseAmount: minPurchaseAmount ? parseFloat(minPurchaseAmount) : null,
+        minPurchaseAmount: minPurchaseAmount ? parseFloat(minPurchaseAmount).toString() : null,
         applicableCategories: applicableCategories || [],
         applicableProducts: applicableProducts || [],
         expiresAt: expiresAt ? new Date(expiresAt) : null,
@@ -215,7 +215,7 @@ couponsRouter.put('/:id', async (c) => {
         discountType,
         discountValue: discountValue ? parseFloat(discountValue).toString() : undefined,
         maxUses,
-        minPurchaseAmount: minPurchaseAmount ? parseFloat(minPurchaseAmount) : null,
+        minPurchaseAmount: minPurchaseAmount ? parseFloat(minPurchaseAmount).toString() : null,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
         isActive,
       })

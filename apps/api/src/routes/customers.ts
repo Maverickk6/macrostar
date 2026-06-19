@@ -61,7 +61,7 @@ customersRouter.get('/', authMiddleware, async (c) => {
 
 // GET /api/customers/:id — admin only: get single customer
 customersRouter.get('/:id', authMiddleware, async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseInt(c.req.param('id') || '0');
 
   const [customer] = await db
     .select({
@@ -87,7 +87,7 @@ customersRouter.get('/:id', authMiddleware, async (c) => {
 
 // PUT /api/customers/:id — admin only: update customer
 customersRouter.put('/:id', authMiddleware, async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseInt(c.req.param('id') || '0');
   const body = await c.req.json();
 
   const [existing] = await db.select().from(customers).where(eq(customers.id, id));
@@ -130,7 +130,7 @@ customersRouter.put('/:id', authMiddleware, async (c) => {
 
 // DELETE /api/customers/:id — admin only: delete customer
 customersRouter.delete('/:id', authMiddleware, async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseInt(c.req.param('id') || '0');
 
   const [existing] = await db.select().from(customers).where(eq(customers.id, id));
   if (!existing) return c.json({ success: false, message: 'Customer not found' }, 404);

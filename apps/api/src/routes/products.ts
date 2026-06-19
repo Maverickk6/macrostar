@@ -178,7 +178,7 @@ productsRouter.post('/', authMiddleware, async (c) => {
 
 // PUT /api/products/:id — admin update
 productsRouter.put('/:id', authMiddleware, async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseInt(c.req.param('id') || '0');
   const body = await c.req.json();
 
   const [existing] = await db.select().from(products).where(eq(products.id, id));
@@ -212,7 +212,7 @@ productsRouter.put('/:id', authMiddleware, async (c) => {
 
 // DELETE /api/products/:id — admin delete
 productsRouter.delete('/:id', authMiddleware, async (c) => {
-  const id = parseInt(c.req.param('id'));
+  const id = parseInt(c.req.param('id') || '0');
 
   const [existing] = await db.select().from(products).where(eq(products.id, id));
   if (!existing) return c.json({ success: false, message: 'Product not found' }, 404);
