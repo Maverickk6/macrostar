@@ -1,10 +1,10 @@
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, Env } from '../middleware/auth.js';
 import { db } from '../db/index.js';
 import { settings as settingsTable } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 
-const settingsRouter = new Hono();
+const settingsRouter = new Hono<Env>();
 
 // Apply auth middleware to all settings routes
 settingsRouter.use('*', authMiddleware);

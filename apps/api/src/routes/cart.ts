@@ -2,9 +2,9 @@ import { Hono } from 'hono';
 import { eq, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { cartItems, products } from '../db/schema.js';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, Env } from '../middleware/auth.js';
 
-const cart = new Hono();
+const cart = new Hono<Env>();
 
 // Apply auth middleware to all routes
 cart.use('*', authMiddleware);

@@ -2,9 +2,9 @@ import { Hono } from 'hono';
 import { eq, desc, like, or, inArray, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { customers } from '../db/schema.js';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, Env } from '../middleware/auth.js';
 
-const customersRouter = new Hono();
+const customersRouter = new Hono<Env>();
 
 // GET /api/customers — admin only: list all customers
 customersRouter.get('/', authMiddleware, async (c) => {

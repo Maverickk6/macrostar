@@ -2,9 +2,9 @@ import { Hono } from 'hono';
 import { desc, gte, sql, eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { orders, products, orderItems, categories } from '../db/schema.js';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, Env } from '../middleware/auth.js';
 
-const analyticsRouter = new Hono();
+const analyticsRouter = new Hono<Env>();
 
 // GET /api/analytics/summary — dashboard overview cards
 analyticsRouter.get('/summary', authMiddleware, async (c) => {

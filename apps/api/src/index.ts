@@ -57,7 +57,7 @@ app.use(
       if (!origin) return true;
 
       // Allow localhost for development
-      if (origin.includes('localhost')) return true;
+      if (origin.includes('localhost')) return origin;
 
       // Allow production URLs from environment variables
       const allowedOrigins = [
@@ -65,7 +65,11 @@ app.use(
         process.env.ADMIN_URL,
       ].filter(Boolean);
 
-      return allowedOrigins.some(allowed => origin === allowed);
+      if (allowedOrigins.some(allowed => origin === allowed)) {
+        return origin;
+      }
+
+      return false;
     },
     allowHeaders: ['Content-Type', 'Authorization'],
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

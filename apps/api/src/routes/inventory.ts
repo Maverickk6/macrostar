@@ -2,9 +2,9 @@ import { Hono } from 'hono';
 import { eq, desc, lt, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { products, inventoryLogs } from '../db/schema.js';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, Env } from '../middleware/auth.js';
 
-const inventoryRouter = new Hono();
+const inventoryRouter = new Hono<Env>();
 
 // GET /api/inventory — admin: all products with stock info
 inventoryRouter.get('/', authMiddleware, async (c) => {

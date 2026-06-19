@@ -7,7 +7,13 @@ export interface JWTPayload {
   role: string;
 }
 
-export async function authMiddleware(c: Context, next: Next) {
+export interface Env {
+  Variables: {
+    user: JWTPayload;
+  };
+}
+
+export async function authMiddleware(c: Context<Env>, next: Next) {
   const authHeader = c.req.header('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return c.json({ success: false, message: 'Unauthorized — missing token' }, 401);

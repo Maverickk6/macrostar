@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, Env } from '../middleware/auth.js';
 import { uploadFile, uploadMultipleFiles } from '../lib/upload.js';
 
-const uploadRouter = new Hono();
+const uploadRouter = new Hono<Env>();
 
 // POST /api/upload - Upload single image
 uploadRouter.post('/', authMiddleware, async (c) => {

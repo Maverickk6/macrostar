@@ -2,9 +2,9 @@ import { Hono } from 'hono';
 import { eq, desc, asc } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { categories } from '../db/schema.js';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, Env } from '../middleware/auth.js';
 
-const categoriesRouter = new Hono();
+const categoriesRouter = new Hono<Env>();
 
 // GET /api/categories — public
 categoriesRouter.get('/', async (c) => {

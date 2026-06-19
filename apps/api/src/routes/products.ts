@@ -2,9 +2,9 @@ import { Hono } from 'hono';
 import { eq, like, ilike, and, gte, lte, desc, asc, or, sql, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { products, categories, inventoryLogs } from '../db/schema.js';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, Env } from '../middleware/auth.js';
 
-const productsRouter = new Hono();
+const productsRouter = new Hono<Env>();
 
 // Helper function to generate SKU
 function generateSKU(name: string, brand?: string | null): string {

@@ -2,10 +2,10 @@ import { Hono } from 'hono';
 import { eq, desc, and, ilike, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { orders, orderItems, products } from '../db/schema.js';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, Env } from '../middleware/auth.js';
 import { strictRateLimit } from '../middleware/rate-limit.js';
 
-const ordersRouter = new Hono();
+const ordersRouter = new Hono<Env>();
 
 function generateOrderNumber(): string {
   const prefix = 'MST';

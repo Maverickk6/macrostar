@@ -4,10 +4,10 @@ import jwt from 'jsonwebtoken';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { users } from '../db/schema.js';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, Env } from '../middleware/auth.js';
 import { authRateLimit } from '../middleware/rate-limit.js';
 
-const auth = new Hono();
+const auth = new Hono<Env>();
 
 // Apply rate limiting to login
 auth.post('/login', authRateLimit, async (c) => {
