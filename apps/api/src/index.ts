@@ -52,9 +52,9 @@ app.use('*', generalRateLimit);
 app.use(
   '*',
   cors({
-    origin: function (origin) {
+    origin: function (origin, c) {
       // Allow requests with no origin (like mobile apps, curl, etc.)
-      if (!origin) return origin;
+      if (!origin) return '*';
 
       // Allow localhost for development
       if (origin.includes('localhost')) return origin;
@@ -65,15 +65,23 @@ app.use(
         process.env.ADMIN_URL,
       ].filter(Boolean);
 
+      // Check if origin matches any allowed origin
       if (allowedOrigins.some(allowed => origin === allowed)) {
         return origin;
       }
 
+      // For debugging: allow all origins if no specific ones are set
+      if (allowedOrigins.length === 0) {
+        console.warn('CORS: No STORE_URL or ADMIN_URL set, allowing all origins for debugging');
+        return '*';
+      }
+
       return undefined;
     },
-    allowHeaders: ['Content-Type', 'Authorization'],
-    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     credentials: true,
+    maxAge: 86400, // 24 hours
   })
 );
 
