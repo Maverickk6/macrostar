@@ -1,4 +1,22 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { existsSync } from 'fs';
+
+// Load .env from root directory (for local development)
+// In production (Vercel), environment variables are automatically injected
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, '../../..');
+const envPath = path.join(rootDir, '.env');
+
+if (existsSync(envPath)) {
+  const result = dotenv.config({ path: envPath });
+  if (result.error) {
+    console.error('Error loading .env:', result.error);
+  }
+}
+
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
@@ -17,25 +35,39 @@ import inventoryRouter from '../routes/inventory.js';
 import analyticsRouter from '../routes/analytics.js';
 import settingsRouter from '../routes/settings.js';
 import contactRouter from '../routes/contact.js';
+import uploadRouter from '../routes/upload.js';
+import customersRouter from '../routes/customers.js';
+import cartRouter from '../routes/cart.js';
+import wishlistRouter from '../routes/wishlist.js';
+import { securityHeaders, requestSizeLimit } from '../middleware/security.js';
+import { generalRateLimit } from '../middleware/rate-limit.js';
 
 const app = new Hono();
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use('*', logger());
+app.use('*', securityHeaders);
+app.use('*', requestSizeLimit(10 * 1024 * 1024)); // 10MB limit
+app.use('*', generalRateLimit);
 app.use(
   '*',
   cors({
-    origin: [
-      'http://localhost:3000', // store
-      'http://localhost:3001', // admin
-      process.env.STORE_URL || '',
-      process.env.ADMIN_URL || '',
-    ].filter(Boolean),
-    allowHeaders: ['Content-Type', 'Authorization'],
-    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    origin: function (origin, c) {
+      // Always allow the requesting origin to avoid blocking Admin App due to trailing slashes or missing env vars
+      if (!origin) return '*';
+      return origin;
+    },
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     credentials: true,
+    maxAge: 86400, // 24 hours
   })
 );
+
+// ─── Static file serving (uploaded images) ───────────────────────────────────
+// Note: Static file serving disabled for Vercel serverless deployment
+// Images should be served from Cloudinary or similar CDN
+// app.use('/uploads/*', serveStatic({ root: './' }));
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/', (c) => c.json({
@@ -60,6 +92,10 @@ app.route('/api/inventory', inventoryRouter);
 app.route('/api/analytics', analyticsRouter);
 app.route('/api/settings', settingsRouter);
 app.route('/api/contact', contactRouter);
+app.route('/api/upload', uploadRouter);
+app.route('/api/customers', customersRouter);
+app.route('/api/cart', cartRouter);
+app.route('/api/wishlist', wishlistRouter);
 
 // ─── 404 Handler ─────────────────────────────────────────────────────────────
 app.notFound((c) => c.json({ success: false, message: 'Route not found' }, 404));
@@ -70,4 +106,5 @@ app.onError((err, c) => {
   return c.json({ success: false, message: 'Internal server error' }, 500);
 });
 
+// ─── Export for Vercel ─────────────────────────────────────────────────────────
 export default app;
