@@ -15,7 +15,7 @@ export function formatNaira(amount: number | string): string {
   }).format(value);
 }
 
-export function getProductImageUrl(image: string | null | undefined, productName: string, apiURL?: string): string {
+export function getProductImageUrl(image: string | null | undefined, productName: string, apiURL?: string): string | null {
   const trimmedImage = image?.trim();
   if (trimmedImage) {
     if (trimmedImage.startsWith('/uploads') && apiURL) {
@@ -23,5 +23,5 @@ export function getProductImageUrl(image: string | null | undefined, productName
     }
     return trimmedImage;
   }
-  return `https://via.placeholder.com/600x600/334155/e2e8f0?text=${encodeURIComponent(productName.substring(0, 20))}`;
+  return null; // Return null to indicate placeholder should be used
 }

@@ -6,11 +6,11 @@ import Image from 'next/image';
 import { ShoppingBag, Trash2, ArrowRight, Minus, Plus, ArrowLeft, Landmark } from 'lucide-react';
 import { useCart } from '@/store/useCart';
 import { formatNaira, getProductImageUrl } from '@/lib/utils';
+import ProductPlaceholder from '@/components/ProductPlaceholder';
 
 export default function CartPage() {
   const [mounted, setMounted] = useState(false);
   const { items, updateQuantity, removeItem, clearCart, getSubtotal } = useCart();
-  const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     setMounted(true);
@@ -84,16 +84,25 @@ export default function CartPage() {
                     {/* Left: Image & Name */}
                     <div className="flex items-center gap-4 w-full sm:w-auto">
                       <div className="w-16 h-16 rounded-xl overflow-hidden bg-muted border border-border shrink-0">
-                        {imageErrors[item.id] ? (
-                          <img src={imgUrl} alt={item.name} className="w-full h-full object-cover" />
-                        ) : (
+                        {imgUrl ? (
                           <Image
                             src={imgUrl}
                             alt={item.name}
                             width={64}
                             height={64}
                             className="w-full h-full object-cover"
-                            onError={() => setImageErrors(prev => ({ ...prev, [item.id]: true }))}
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              const placeholder = e.currentTarget.nextElementSibling as HTMLElement;
+                              if (placeholder) placeholder.style.display = 'block';
+                            }}
+                          />
+                        ) : (
+                          <ProductPlaceholder 
+                            productName={item.name} 
+                            width={64}
+                            height={64}
+                            className="w-full h-full object-cover"
                           />
                         )}
                       </div>

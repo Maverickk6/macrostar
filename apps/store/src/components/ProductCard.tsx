@@ -8,6 +8,7 @@ import { formatNaira, getProductImageUrl } from '@/lib/utils';
 import { useCart } from '@/store/useCart';
 import { useWishlist } from '@/store/useWishlist';
 import { toast } from 'sonner';
+import ProductPlaceholder from './ProductPlaceholder';
 
 export interface Product {
   id: number;
@@ -33,7 +34,6 @@ export default function ProductCard({ product }: ProductCardProps) {
   const items = useWishlist((state) => state.items);
 
   const isInWishlist = items.some((item) => item.id === product.id);
-  const [imageError, setImageError] = useState(false);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -106,14 +106,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         ) : null}
 
         {/* Image */}
-        {imageError ? (
-          <img
-            src={imageUrl}
-            alt={product.name}
-            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-            loading="lazy"
-          />
-        ) : (
+        {imageUrl ? (
           <Image
             src={imageUrl}
             alt={product.name}
@@ -121,7 +114,17 @@ export default function ProductCard({ product }: ProductCardProps) {
             height={600}
             className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
             loading="lazy"
-            onError={() => setImageError(true)}
+            onError={(e) => {
+              // Fallback to placeholder on error
+              e.currentTarget.style.display = 'none';
+              const placeholder = e.currentTarget.nextElementSibling as HTMLElement;
+              if (placeholder) placeholder.style.display = 'block';
+            }}
+          />
+        ) : (
+          <ProductPlaceholder 
+            productName={product.name} 
+            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
           />
         )}
 

@@ -9,6 +9,7 @@ import { useCart } from '@/store/useCart';
 import { useWishlist } from '@/store/useWishlist';
 import { formatNaira, getProductImageUrl } from '@/lib/utils';
 import { toast } from 'sonner';
+import ProductPlaceholder from '@/components/ProductPlaceholder';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -36,7 +37,6 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [imageError, setImageError] = useState(false);
 
   const addItem = useCart((state) => state.addItem);
   const toggleItem = useWishlist((state) => state.toggleItem);
@@ -192,7 +192,6 @@ export default function ProductDetailPage() {
     toast.success(isInWishlist ? 'Removed from wishlist' : 'Added to wishlist');
   };
 
-  const placeholderImage = `https://via.placeholder.com/600x600/334155/e2e8f0?text=${encodeURIComponent(product.name.substring(0, 20))}`;
   const apiURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
   const imageUrl = getProductImageUrl(product.images?.[0] || null, product.name, apiURL);
 
@@ -226,20 +225,24 @@ export default function ProductDetailPage() {
                 Special Offer
               </span>
             )}
-            {imageError ? (
-              <img
-                src={placeholderImage}
-                alt={product.name}
-                className="w-full h-full object-cover object-center"
-              />
-            ) : (
+            {imageUrl ? (
               <Image
-                src={imageUrl}
+                src={imageUrl!}
                 alt={product.name}
                 width={600}
                 height={600}
                 className="w-full h-full object-cover object-center"
-                onError={() => setImageError(true)}
+                onError={(e) => {
+                  // Fallback to placeholder on error
+                  e.currentTarget.style.display = 'none';
+                  const placeholder = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (placeholder) placeholder.style.display = 'block';
+                }}
+              />
+            ) : (
+              <ProductPlaceholder 
+                productName={product.name} 
+                className="w-full h-full object-cover object-center"
               />
             )}
           </div>
