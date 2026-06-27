@@ -53,9 +53,34 @@ app.use(
   '*',
   cors({
     origin: function (origin, c) {
-      // Always allow the requesting origin to avoid blocking Admin App due to trailing slashes or missing env vars
+      // Allow requests with no origin (like mobile apps, curl, etc.)
       if (!origin) return '*';
-      return origin;
+
+      // Allow localhost for development
+      if (origin.includes('localhost')) return origin;
+
+      // Allow production URLs from environment variables
+      const allowedOrigins = [
+        process.env.STORE_URL,
+        process.env.ADMIN_URL,
+      ].filter(Boolean);
+
+      // Normalize origins for comparison (remove trailing slashes)
+      const normalizedOrigin = origin.replace(/\/$/, '');
+      const normalizedAllowed = allowedOrigins.map(url => url.replace(/\/$/, ''));
+
+      // Check if origin matches any allowed origin
+      if (normalizedAllowed.some(allowed => normalizedOrigin === allowed)) {
+        return origin;
+      }
+
+      // For debugging: allow all origins if no specific ones are set
+      if (allowedOrigins.length === 0) {
+        console.warn('CORS: No STORE_URL or ADMIN_URL set, allowing all origins for debugging');
+        return '*';
+      }
+
+      return undefined;
     },
     allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],

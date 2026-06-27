@@ -14,46 +14,34 @@ auth.post('/login', authRateLimit, async (c) => {
   const body = await c.req.json();
   const { email, password } = body;
 
-  console.log('Login attempt:', { email, hasPassword: !!password });
-
   if (!email || !password) {
     return c.json({ success: false, message: 'Email and password required' }, 400);
   }
 
-  try {
-    const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-    console.log('User found:', !!user, user?.email);
+  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
-    if (!user) {
-      return c.json({ success: false, message: 'Invalid credentials' }, 401);
-    }
-
-    const isValid = await bcrypt.compare(password, user.password);
-    console.log('Password valid:', isValid);
-
-    if (!isValid) {
-      return c.json({ success: false, message: 'Invalid credentials' }, 401);
-    }
-
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET!,
-      { expiresIn: user.role === 'admin' ? '1h' : '7d' }
-    );
-
-    console.log('Login successful for:', email);
-
-    return c.json({
-      success: true,
-      data: {
-        token,
-        user: { id: user.id, name: user.name, email: user.email, role: user.role },
-      },
-    });
-  } catch (error) {
-    console.error('Login error:', error);
-    return c.json({ success: false, message: 'Internal server error' }, 500);
+  if (!user) {
+    return c.json({ success: false, message: 'Invalid credentials' }, 401);
   }
+
+  const isValid = await bcrypt.compare(password, user.password);
+  if (!isValid) {
+    return c.json({ success: false, message: 'Invalid credentials' }, 401);
+  }
+
+  const token = jwt.sign(
+    { id: user.id, email: user.email, role: user.role },
+    process.env.JWT_SECRET!,
+    { expiresIn: user.role === 'admin' ? '1h' : '7d' }
+  );
+
+  return c.json({
+    success: true,
+    data: {
+      token,
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    },
+  });
 });
 
 // GET /api/auth/me
