@@ -67,7 +67,7 @@ app.use(
 
       // Normalize origins for comparison (remove trailing slashes)
       const normalizedOrigin = origin.replace(/\/$/, '');
-      const normalizedAllowed = allowedOrigins.map(url => url.replace(/\/$/, ''));
+      const normalizedAllowed = allowedOrigins.map((url) => url!.replace(/\/$/, ''));
 
       // Check if origin matches any allowed origin
       if (normalizedAllowed.some(allowed => normalizedOrigin === allowed)) {
