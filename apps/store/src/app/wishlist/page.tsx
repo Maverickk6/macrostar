@@ -16,6 +16,7 @@ export default function WishlistPage() {
   const [mounted, setMounted] = useState(false);
   const { items, toggleItem } = useWishlist();
   const { addItem } = useCart();
+  const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     setMounted(true);
@@ -153,19 +154,23 @@ export default function WishlistPage() {
 
                 {/* Image */}
                 {imgUrl ? (
-                  <Image
-                    src={imgUrl}
-                    alt={item.name}
-                    width={600}
-                    height={600}
-                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                    loading="lazy"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      const placeholder = e.currentTarget.nextElementSibling as HTMLElement;
-                      if (placeholder) placeholder.style.display = 'block';
-                    }}
-                  />
+                  <>
+                    <Image
+                      src={imgUrl}
+                      alt={item.name}
+                      width={600}
+                      height={600}
+                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
+                      style={{ display: imageErrors[item.id] ? 'none' : 'block' }}
+                      onError={() => setImageErrors(prev => ({ ...prev, [item.id]: true }))}
+                    />
+                    <ProductPlaceholder 
+                      productName={item.name} 
+                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                      style={{ display: imageErrors[item.id] ? 'block' : 'none' }}
+                    />
+                  </>
                 ) : (
                   <ProductPlaceholder 
                     productName={item.name} 

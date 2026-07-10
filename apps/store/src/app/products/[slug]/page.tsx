@@ -37,6 +37,7 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [imageError, setImageError] = useState(false);
 
   const addItem = useCart((state) => state.addItem);
   const toggleItem = useWishlist((state) => state.toggleItem);
@@ -226,19 +227,22 @@ export default function ProductDetailPage() {
               </span>
             )}
             {imageUrl ? (
-              <Image
-                src={imageUrl!}
-                alt={product.name}
-                width={600}
-                height={600}
-                className="w-full h-full object-cover object-center"
-                onError={(e) => {
-                  // Fallback to placeholder on error
-                  e.currentTarget.style.display = 'none';
-                  const placeholder = e.currentTarget.nextElementSibling as HTMLElement;
-                  if (placeholder) placeholder.style.display = 'block';
-                }}
-              />
+              <>
+                <Image
+                  src={imageUrl!}
+                  alt={product.name}
+                  width={600}
+                  height={600}
+                  className="w-full h-full object-cover object-center"
+                  style={{ display: imageError ? 'none' : 'block' }}
+                  onError={() => setImageError(true)}
+                />
+                <ProductPlaceholder 
+                  productName={product.name} 
+                  className="w-full h-full object-cover object-center"
+                  style={{ display: imageError ? 'block' : 'none' }}
+                />
+              </>
             ) : (
               <ProductPlaceholder 
                 productName={product.name} 

@@ -34,6 +34,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const items = useWishlist((state) => state.items);
 
   const isInWishlist = items.some((item) => item.id === product.id);
+  const [imageError, setImageError] = useState(false);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -107,20 +108,23 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Image */}
         {imageUrl ? (
-          <Image
-            src={imageUrl}
-            alt={product.name}
-            width={600}
-            height={600}
-            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-            loading="lazy"
-            onError={(e) => {
-              // Fallback to placeholder on error
-              e.currentTarget.style.display = 'none';
-              const placeholder = e.currentTarget.nextElementSibling as HTMLElement;
-              if (placeholder) placeholder.style.display = 'block';
-            }}
-          />
+          <>
+            <Image
+              src={imageUrl}
+              alt={product.name}
+              width={600}
+              height={600}
+              className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+              loading="lazy"
+              style={{ display: imageError ? 'none' : 'block' }}
+              onError={() => setImageError(true)}
+            />
+            <ProductPlaceholder 
+              productName={product.name} 
+              className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+              style={{ display: imageError ? 'block' : 'none' }}
+            />
+          </>
         ) : (
           <ProductPlaceholder 
             productName={product.name} 
