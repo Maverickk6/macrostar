@@ -122,7 +122,7 @@ export default async function HomePage() {
               </span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0 leading-relaxed">
-              We sell laptops, desktop computers, quality components, and gaming accessories. Visit us opposite First Bank PLC, Ekpoma for professional repairs & installations.
+              We swap and sell laptops, desktop computers, quality components, and gaming accessories. Visit us at No. 3, Illen-Otuma street, opposite First Bank PLC, Ekpoma for professional repairs & installations.
             </p>
             <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4">
               <Link
@@ -153,14 +153,14 @@ export default async function HomePage() {
                     <Monitor className="h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-lg text-foreground">MacroStar Technologies</h3>
+                    <h3 className="font-extrabold text-lg text-foreground">MacroStar Technology</h3>
                     <p className="text-xs text-muted-foreground">Office location & store details</p>
                   </div>
                 </div>
                 <div className="space-y-3.5 text-sm border-t border-border/50 pt-4">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Location:</span>
-                    <span className="font-bold text-foreground text-right">Opposite First Bank PLC, Ekpoma</span>
+                    <span className="font-bold text-foreground text-right">No. 3, Illen-Otuma street, Opposite First Bank PLC, Ekpoma</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">State:</span>
@@ -168,7 +168,7 @@ export default async function HomePage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Core Services:</span>
-                    <span className="font-bold text-foreground">Sales, Repairs, Installs</span>
+                    <span className="font-bold text-foreground">Sales, Swaps, Repairs, Installs</span>
                   </div>
                 </div>
               </div>
@@ -206,7 +206,7 @@ export default async function HomePage() {
           <div className="text-center max-w-xl mx-auto">
             <h2 className="text-3xl font-extrabold tracking-tight">Professional Services</h2>
             <p className="text-sm text-muted-foreground mt-2">
-              Beyond product sales, we offer expert installation, repairs and support
+              Beyond product sales, we swap, offer expert installation, repairs and support
             </p>
           </div>
 
@@ -240,7 +240,7 @@ export default async function HomePage() {
           <div className="space-y-4 max-w-xl">
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Visit Our Physical Store in Ekpoma</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              We are conveniently located directly opposite First Bank PLC on the main street of Ekpoma, Edo State. Stop by today for instant repair assessments, laptop setups, and to test computer parts before buying.
+              We are conveniently located at No.3, Illen-Otuma street, directly opposite First Bank PLC, Ekpoma, Edo State. Stop by today for swapping, instant repair assessments, laptop setups, and to test computer parts before buying.
             </p>
             <div className="flex items-center gap-2 text-xs font-semibold text-primary">
               <ShieldCheck className="h-4 w-4" />
