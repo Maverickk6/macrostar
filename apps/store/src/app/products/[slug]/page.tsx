@@ -9,6 +9,7 @@ import { useCart } from '@/store/useCart';
 import { useWishlist } from '@/store/useWishlist';
 import { formatNaira, getProductImageUrl } from '@/lib/utils';
 import { toast } from 'sonner';
+import ProductPlaceholder from '@/components/ProductPlaceholder';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -45,6 +46,7 @@ export default function ProductDetailPage() {
   const isInWishlist = product ? items.some((item) => item.id === product.id) : false;
 
   useEffect(() => {
+    setImageError(false); // Reset image error when navigating to new product
     async function fetchProduct() {
       try {
         setLoading(true);
@@ -192,7 +194,6 @@ export default function ProductDetailPage() {
     toast.success(isInWishlist ? 'Removed from wishlist' : 'Added to wishlist');
   };
 
-  const placeholderImage = `https://via.placeholder.com/600x600/334155/e2e8f0?text=${encodeURIComponent(product.name.substring(0, 20))}`;
   const apiURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
   const imageUrl = getProductImageUrl(product.images?.[0] || null, product.name, apiURL);
 
@@ -226,20 +227,27 @@ export default function ProductDetailPage() {
                 Special Offer
               </span>
             )}
-            {imageError ? (
-              <img
-                src={placeholderImage}
-                alt={product.name}
-                className="w-full h-full object-cover object-center"
-              />
+            {imageUrl ? (
+              <>
+                <Image
+                  src={imageUrl!}
+                  alt={product.name}
+                  width={600}
+                  height={600}
+                  className="w-full h-full object-cover object-center"
+                  style={{ display: imageError ? 'none' : 'block' }}
+                  onError={() => setImageError(true)}
+                />
+                <ProductPlaceholder 
+                  productName={product.name} 
+                  className="w-full h-full object-cover object-center"
+                  style={{ display: imageError ? 'block' : 'none' }}
+                />
+              </>
             ) : (
-              <Image
-                src={imageUrl}
-                alt={product.name}
-                width={600}
-                height={600}
+              <ProductPlaceholder 
+                productName={product.name} 
                 className="w-full h-full object-cover object-center"
-                onError={() => setImageError(true)}
               />
             )}
           </div>

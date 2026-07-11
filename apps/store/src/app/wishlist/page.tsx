@@ -8,6 +8,7 @@ import { useWishlist } from '@/store/useWishlist';
 import { useCart } from '@/store/useCart';
 import { toast } from 'sonner';
 import { formatNaira, getProductImageUrl } from '@/lib/utils';
+import ProductPlaceholder from '@/components/ProductPlaceholder';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -152,28 +153,34 @@ export default function WishlistPage() {
                 ) : null}
 
                 {/* Image */}
-                {imageErrors[item.id] ? (
-                  <img
-                    src={imgUrl}
-                    alt={item.name}
-                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                    loading="lazy"
-                  />
+                {imgUrl ? (
+                  <>
+                    <Image
+                      src={imgUrl}
+                      alt={item.name}
+                      width={600}
+                      height={600}
+                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
+                      style={{ display: imageErrors[item.id] ? 'none' : 'block' }}
+                      onError={() => setImageErrors(prev => ({ ...prev, [item.id]: true }))}
+                    />
+                    <ProductPlaceholder 
+                      productName={item.name} 
+                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                      style={{ display: imageErrors[item.id] ? 'block' : 'none' }}
+                    />
+                  </>
                 ) : (
-                  <Image
-                    src={imgUrl}
-                    alt={item.name}
-                    width={600}
-                    height={600}
+                  <ProductPlaceholder 
+                    productName={item.name} 
                     className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                    loading="lazy"
-                    onError={() => setImageErrors(prev => ({ ...prev, [item.id]: true }))}
                   />
                 )}
               </Link>
 
               {/* Content */}
-              <div className="p-4 flex flex-col flex-grow space-y-3">
+              <div className="p-4 flex flex-col grow space-y-3">
                 {/* Name */}
                 <Link href={`/products/${item.slug}`}>
                   <h3 className="font-bold text-sm text-foreground line-clamp-2 hover:text-primary transition-colors">
@@ -214,7 +221,7 @@ export default function WishlistPage() {
                 </div>
 
                 {/* Actions - Spacer to push to bottom */}
-                <div className="flex-grow" />
+                <div className="grow" />
 
                 {/* Buttons */}
                 <div className="flex gap-2 pt-3">

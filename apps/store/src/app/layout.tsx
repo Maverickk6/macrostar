@@ -7,8 +7,8 @@ import { Toaster } from 'sonner';
 import { ThemeProvider } from '../lib/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'MacroStar Technologies | Best Computer Outlet in Ekpoma, Edo State',
-  description: 'Shop laptops, desktop computers, parts, gaming consoles, accessories, and get expert repairs and software solutions opposite First Bank, Ekpoma.',
+  title: 'MacroStar Technology | Best Computer Outlet in Ekpoma, Edo State',
+  description: 'Swap and Shop laptops, desktop computers, parts, gaming consoles, accessories, and get expert repairs and software solutions at No. 3, Illen-Otuma street, opposite First Bank, Ekpoma.',
 };
 
 export default function RootLayout({

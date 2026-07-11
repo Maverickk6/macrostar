@@ -8,6 +8,7 @@ import { formatNaira, getProductImageUrl } from '@/lib/utils';
 import { useCart } from '@/store/useCart';
 import { useWishlist } from '@/store/useWishlist';
 import { toast } from 'sonner';
+import ProductPlaceholder from './ProductPlaceholder';
 
 export interface Product {
   id: number;
@@ -106,22 +107,28 @@ export default function ProductCard({ product }: ProductCardProps) {
         ) : null}
 
         {/* Image */}
-        {imageError ? (
-          <img
-            src={imageUrl}
-            alt={product.name}
-            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-            loading="lazy"
-          />
+        {imageUrl ? (
+          <>
+            <Image
+              src={imageUrl}
+              alt={product.name}
+              width={600}
+              height={600}
+              className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+              loading="lazy"
+              style={{ display: imageError ? 'none' : 'block' }}
+              onError={() => setImageError(true)}
+            />
+            <ProductPlaceholder 
+              productName={product.name} 
+              className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+              style={{ display: imageError ? 'block' : 'none' }}
+            />
+          </>
         ) : (
-          <Image
-            src={imageUrl}
-            alt={product.name}
-            width={600}
-            height={600}
+          <ProductPlaceholder 
+            productName={product.name} 
             className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-            loading="lazy"
-            onError={() => setImageError(true)}
           />
         )}
 

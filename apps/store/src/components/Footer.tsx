@@ -17,7 +17,7 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              MacroStar Technologies is Ekpoma's leading computer & hardware store. We deal in desktop PCs, consoles, laptops, premium components, repairs, and professional software installs.
+              MacroStar Technology is Ekpoma's leading computer & hardware store. We deal in desktop PCs, consoles, laptops, premium components, swapping, repairs, and professional software installs.
             </p>
           </div>
 
@@ -80,11 +80,11 @@ export default function Footer() {
             <h3 className="text-sm font-bold uppercase tracking-wider text-foreground mb-4">Find Us</h3>
             <div className="flex gap-2 text-sm text-muted-foreground">
               <MapPin className="h-5 w-5 text-primary shrink-0" />
-              <span>Opposite First Bank PLC, Ekpoma, Edo State, Nigeria.</span>
+              <span>No.3, Illen-Otuma street, Opposite First Bank PLC, Ekpoma, Edo State, Nigeria.</span>
             </div>
             <div className="flex gap-2 text-sm text-muted-foreground">
               <Phone className="h-4 w-4 text-primary shrink-0" />
-              <span>+234 (0) 80 1234 5678</span>
+              <span>+234 (0) 8062348989</span>
             </div>
             <div className="flex gap-2 text-sm text-muted-foreground">
               <Mail className="h-4 w-4 text-primary shrink-0" />
@@ -126,7 +126,7 @@ export default function Footer() {
 
         {/* Footer Bottom */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 text-xs text-muted-foreground">
-          <p>© {new Date().getFullYear()} MacroStar Technologies. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} MacroStar Technology. All rights reserved.</p>
           <div className="flex items-center gap-2">
             <span>Secured via</span>
             <span className="font-bold text-foreground tracking-tight hover:text-primary transition-colors">

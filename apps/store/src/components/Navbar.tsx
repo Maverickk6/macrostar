@@ -57,12 +57,12 @@ export default function Navbar() {
       <div className="bg-primary text-primary-foreground text-xs py-1 px-4 flex justify-between items-center z-50 relative font-medium">
         <div className="flex items-center gap-1.5">
           <MapPin className="h-3.5 w-3.5" />
-          <span>Opposite First Bank PLC, Ekpoma, Edo State</span>
+          <span>No. 3, Illen-Otuma street, Opposite First Bank PLC, Ekpoma, Edo State</span>
         </div>
         <div className="flex items-center gap-3">
           <Link href="tel:+2348000000000" className="flex items-center gap-1 hover:underline">
             <Phone className="h-3.5 w-3.5" />
-            <span>+234 80 0000 0000</span>
+            <span>+234 8062348989</span>
           </Link>
           {/* <Link href="http://localhost:3001" className="text-xs hover:underline bg-black/20 px-2 py-0.5 rounded">
             Admin Portal
@@ -90,7 +90,7 @@ export default function Navbar() {
                   MacroStar
                 </span>
                 <span className="text-[10px] block text-muted-foreground font-semibold tracking-wider uppercase -mt-1">
-                  Technologies
+                  Technology
                 </span>
               </div>
             </Link>
@@ -349,7 +349,7 @@ export default function Navbar() {
               <div className="border-t border-border/50 pt-4 mt-4 px-3 flex flex-col gap-2">
                 <p className="text-xs text-muted-foreground">Office Location:</p>
                 <p className="text-sm font-medium text-foreground">
-                  Opposite First Bank PLC, Ekpoma, Edo State
+                  No.3, Illen-Otuma street, opposite First Bank PLC, Ekpoma, Edo State
                 </p>
               </div>
             </div>

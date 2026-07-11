@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { ShoppingBag, Trash2, ArrowRight, Minus, Plus, ArrowLeft, Landmark } from 'lucide-react';
 import { useCart } from '@/store/useCart';
 import { formatNaira, getProductImageUrl } from '@/lib/utils';
+import ProductPlaceholder from '@/components/ProductPlaceholder';
 
 export default function CartPage() {
   const [mounted, setMounted] = useState(false);
@@ -84,16 +85,31 @@ export default function CartPage() {
                     {/* Left: Image & Name */}
                     <div className="flex items-center gap-4 w-full sm:w-auto">
                       <div className="w-16 h-16 rounded-xl overflow-hidden bg-muted border border-border shrink-0">
-                        {imageErrors[item.id] ? (
-                          <img src={imgUrl} alt={item.name} className="w-full h-full object-cover" />
+                        {imgUrl ? (
+                          <>
+                            <Image
+                              src={imgUrl}
+                              alt={item.name}
+                              width={64}
+                              height={64}
+                              className="w-full h-full object-cover"
+                              style={{ display: imageErrors[item.id] ? 'none' : 'block' }}
+                              onError={() => setImageErrors(prev => ({ ...prev, [item.id]: true }))}
+                            />
+                            <ProductPlaceholder 
+                              productName={item.name} 
+                              width={64}
+                              height={64}
+                              className="w-full h-full object-cover"
+                              style={{ display: imageErrors[item.id] ? 'block' : 'none' }}
+                            />
+                          </>
                         ) : (
-                          <Image
-                            src={imgUrl}
-                            alt={item.name}
+                          <ProductPlaceholder 
+                            productName={item.name} 
                             width={64}
                             height={64}
                             className="w-full h-full object-cover"
-                            onError={() => setImageErrors(prev => ({ ...prev, [item.id]: true }))}
                           />
                         )}
                       </div>
