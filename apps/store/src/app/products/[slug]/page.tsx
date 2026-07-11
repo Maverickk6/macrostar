@@ -46,6 +46,7 @@ export default function ProductDetailPage() {
   const isInWishlist = product ? items.some((item) => item.id === product.id) : false;
 
   useEffect(() => {
+    setImageError(false); // Reset image error when navigating to new product
     async function fetchProduct() {
       try {
         setLoading(true);
